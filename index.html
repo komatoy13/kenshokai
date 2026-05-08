@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顕正会 報告システム</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:sans-serif;font-size:14px;background:#f5f5f5;color:#222;}
+
+/* タブ */
+.tabs{display:flex;border-bottom:1px solid #ddd;background:#fff;position:sticky;top:0;z-index:20;}
+.tab{flex:1;padding:10px 1px;font-size:10px;text-align:center;cursor:pointer;color:#888;border-bottom:2px solid transparent;white-space:nowrap;}
+.tab.active{color:#1a6bbf;border-bottom:2px solid #1a6bbf;font-weight:500;}
+.page{display:none;}.page.active{display:block;}
+
+/* 共通部品 */
+.sec-hd{font-size:11px;font-weight:500;color:#888;letter-spacing:.04em;padding:7px 14px 5px;border-bottom:1px solid #eee;background:#fafafa;}
+.row{display:flex;align-items:center;gap:8px;padding:7px 14px;flex-wrap:wrap;border-bottom:1px solid #eee;}
+.lbl{font-size:12px;color:#888;min-width:64px;flex-shrink:0;}
+input,select{font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#222;}
+input:focus,select:focus{outline:none;border-color:#1a6bbf;}
+.w70{width:70px;}.w100{width:100px;}.w120{width:120px;}.w160{width:160px;}.w200{width:200px;}
+.btn{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #ccc;background:#f0f0f0;color:#333;cursor:pointer;}
+.btn:active{opacity:.75;}
+.btn-p{background:#1a6bbf;color:#fff;border-color:#1a6bbf;}
+.btn-s{background:#1a8f5a;color:#fff;border-color:#1a8f5a;}
+.btn-w{background:#c0392b;color:#fff;border-color:#c0392b;}
+.ok{font-size:12px;color:#1a8f5a;}
+.err{font-size:12px;color:#c0392b;}
+
+/* サマリーカード */
+.scards{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #eee;}
+.sc{background:#f0f0f0;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;min-width:60px;}
+.sc-l{font-size:11px;color:#888;}.sc-v{font-size:20px;font-weight:500;}.sc-s{font-size:10px;color:#aaa;}
+.sc.hi .sc-v{color:#1a8f5a;}
+
+/* 集計テーブル */
+.agg-wrap{overflow-x:auto;padding:0;}
+.agg-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.agg-tbl th{background:#fafafa;color:#888;font-weight:500;font-size:11px;padding:6px 8px;border-bottom:1px solid #ddd;text-align:center;white-space:nowrap;}
+.agg-tbl th.name-col{text-align:left;min-width:70px;}
+.agg-tbl td{padding:5px 6px;border-bottom:1px solid #eee;text-align:center;vertical-align:middle;}
+.agg-tbl td.name-cell{text-align:left;font-size:13px;padding-left:10px;}
+.agg-tbl tr:last-child td{border-bottom:none;}
+.agg-tbl tr.summary-row td{background:#f0f7ff;font-weight:500;font-size:12px;}
+
+/* ABC ボタン */
+.abcb{width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;}
+.abcb:active{transform:scale(.9);}
+.s-e{background:#e8e8e8;border:1px solid #ccc;color:#aaa;}
+.s-A{background:#1D9E75;color:#fff;}.s-B{background:#639922;color:#fff;}
+.s-C{background:#BA7517;color:#fff;}.s-D{background:#888;color:#fff;}.s-E{background:#E24B4A;color:#fff;}
+
+/* チェックボタン */
+.ckb{width:30px;height:30px;border-radius:50%;border:1px solid #ccc;cursor:pointer;font-size:14px;background:#f0f0f0;color:#aaa;display:inline-flex;align-items:center;justify-content:center;}
+.ckb.on{background:#1D9E75;color:#fff;border-color:#1D9E75;}
+
+/* 数値ボタン */
+.numcell{display:inline-flex;align-items:center;gap:3px;}
+.numb{width:22px;height:22px;border-radius:4px;border:1px solid #ccc;background:#f0f0f0;color:#333;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.numb:active{opacity:.7;}
+.numv{font-size:14px;font-weight:500;min-width:18px;text-align:center;}
+
+/* 項目選択チェックボックス */
+.item-checks{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid #eee;background:#fff;}
+.ic{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #ddd;background:#f9f9f9;}
+.ic.active{border-color:#1a6bbf;background:#dbeeff;color:#1a6bbf;}
+.ic input{display:none;}
+
+/* 掴み/結果スイッチ */
+.mode-sw{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid #eee;align-items:center;flex-wrap:wrap;}
+.mode-sw .lbl{min-width:0;}
+.msb{font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid #ccc;background:#f0f0f0;color:#888;cursor:pointer;}
+.msb.active{background:#1a6bbf;color:#fff;border-color:#1a6bbf;}
+
+/* 最終確定バッジ */
+.final-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#ffeeba;color:#856404;border:1px solid #ffc107;margin-left:6px;}
+.final-badge.done{background:#d4edda;color:#155724;border-color:#28a745;}
+
+/* 履歴 */
+.hist-link{font-size:12px;color:#1a6bbf;cursor:pointer;padding:7px 14px;border-top:1px solid #eee;display:block;}
+.hist-area{padding:10px 14px;display:none;}
+.hist-area.open{display:block;}
+.htbl{width:100%;font-size:12px;border-collapse:collapse;}
+.htbl th{text-align:left;color:#888;font-weight:400;padding:4px 5px;border-bottom:1px solid #eee;}
+.htbl td{padding:4px 5px;border-bottom:1px solid #eee;}
+
+/* 名簿 */
+.mbr-item{padding:9px 14px;border-bottom:1px solid #eee;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.mbr-nm{font-size:14px;font-weight:500;min-width:90px;}
+.mbr-kana{font-size:11px;color:#888;}
+.mbr-meta{font-size:11px;color:#aaa;}
+.tag{font-size:11px;padding:1px 7px;border-radius:10px;background:#dbeeff;color:#1a6bbf;}
+
+/* 凡例 */
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid #eee;}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:#888;}
+.ldot{width:13px;height:13px;border-radius:50%;}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" id="tb0" onclick="sw(0)">集計</div>
+  <div class="tab" id="tb1" onclick="sw(1)">折伏成果</div>
+  <div class="tab" id="tb2" onclick="sw(2)">入信者登録</div>
+  <div class="tab" id="tb3" onclick="sw(3)">名簿</div>
+  <div class="tab" id="tb4" onclick="sw(4)">折伏予定</div>
+  <div class="tab" id="tb5" onclick="sw(5)">メール</div>
+  <div class="tab" id="tb6" onclick="sw(6)">設定</div>
+</div>
+
+<!-- ========== 集計タブ ========== -->
+<div class="page active" id="pg0">
+
+  <!-- ① 集計項目の選択 -->
+  <div class="sec-hd">集計する項目を選択</div>
+  <div class="item-checks" id="item-checks"></div>
+
+  <!-- カスタム項目追加 -->
+  <div class="row">
+    <div class="lbl">項目追加</div>
+    <input class="w120" id="custom-name" placeholder="例：○○大会">
+    <select id="custom-type">
+      <option value="grab_check">掴み/結果（チェック）</option>
+      <option value="grab_num">掴み/結果（数値）</option>
+      <option value="cumulative">累計型</option>
+    </select>
+    <button class="btn btn-p" onclick="addCustomItem()">追加</button>
+  </div>
+
+  <!-- ② 班選択 -->
+  <div class="row">
+    <div class="lbl">班</div>
+    <select id="agg-han" onchange="renderAggTable()">
+      <option value="__all__">全班まとめ</option>
+    </select>
+    <div class="lbl" style="min-width:40px">報告日</div>
+    <input type="date" id="agg-date">
+    <button class="btn btn-p" onclick="saveResult()">結果を保存</button>
+    <button class="btn btn-w" onclick="resetResult()">リセット</button>
+    <span class="ok" id="agg-msg"></span>
+  </div>
+
+  <!-- サマリーカード（モード切替は各列ヘッダーへ移動）-->
+  <div class="scards" id="agg-scards"></div>
+
+  <!-- ④ 集計テーブル -->
+  <div class="agg-wrap">
+    <table class="agg-tbl" id="agg-table">
+      <thead id="agg-thead"></thead>
+      <tbody id="agg-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="ldot" style="background:#1D9E75"></div>A確実(1.0)</div>
+    <div class="leg"><div class="ldot" style="background:#639922"></div>B半々(0.5)</div>
+    <div class="leg"><div class="ldot" style="background:#BA7517"></div>C低め(0.2)</div>
+    <div class="leg"><div class="ldot" style="background:#888"></div>D難しい(0)</div>
+    <div class="leg"><div class="ldot" style="background:#E24B4A"></div>E連絡不可(0)</div>
+  </div>
+
+  <!-- 履歴 -->
+  <span class="hist-link" id="agg-hl" onclick="toggleAggHist()">▸ 過去の記録を見る</span>
+  <div class="hist-area" id="agg-hist-area"></div>
+</div>
+
+<!-- ========== 折伏成果 ========== -->
+<div class="page" id="pg1">
+  <div class="sec-hd">法戦期間</div>
+  <div class="row">
+    <div class="lbl">期間</div>
+    <input type="date" id="h-start">
+    <span style="font-size:12px;color:#888">〜</span>
+    <input type="date" id="h-end">
+    <button class="btn btn-p" onclick="saveHP()">設定</button>
+    <span class="ok" id="h-pmsg"></span>
+  </div>
+  <div class="row">
+    <div class="lbl">報告日</div>
+    <input type="date" id="h-rdate">
+    <button class="btn btn-p" onclick="saveHR()">週次保存</button>
+    <span class="ok" id="h-rmsg"></span>
+  </div>
+  <div class="scards" id="h-cards"></div>
+  <div class="sec-hd">期間内の入信者</div>
+  <div id="h-list"></div>
+  <span class="hist-link" id="h-hl" onclick="toggleHH()">▸ 過去の法戦記録</span>
+  <div class="hist-area" id="h-hist"></div>
+</div>
+
+<!-- ========== 入信者登録 ========== -->
+<div class="page" id="pg2">
+  <div class="sec-hd">氏名</div>
+  <div class="row">
+    <div class="lbl">姓 <span style="color:#c0392b;font-size:10px">必須</span></div>
+    <input class="w120" id="r-sei" placeholder="道家" oninput="onNameInput('sei')">
+    <div class="lbl" style="min-width:28px">名</div>
+    <input class="w120" id="r-mei" placeholder="豊光" oninput="onNameInput('mei')">
+  </div>
+  <div class="row">
+    <div class="lbl">読み（姓）</div>
+    <input class="w120" id="r-sk" placeholder="どうけ">
+    <div class="lbl" style="min-width:28px">名</div>
+    <input class="w120" id="r-mk" placeholder="とよみつ">
+  </div>
+  <div class="sec-hd">住所</div>
+  <div class="row">
+    <div class="lbl">郵便番号</div>
+    <input class="w100" id="r-zip" placeholder="000-0000" maxlength="8" oninput="onZipInput(this)">
+    <span id="r-zip-msg" style="font-size:12px;color:#888"></span>
+  </div>
+  <div class="row"><div class="lbl">都道府県</div><input class="w120" id="r-pref" placeholder="岐阜県"></div>
+  <div class="row"><div class="lbl">市区町村</div><input class="w160" id="r-city" placeholder="羽島市"></div>
+  <div class="row"><div class="lbl">それ以下</div><input class="w200" id="r-addr" placeholder="福寿町間島1-17"></div>
+  <div class="sec-hd">連絡先・生年月日</div>
+  <div class="row"><div class="lbl">電話番号①</div><input class="w160" id="r-tel" placeholder="09000000000" type="tel"></div>
+  <div class="row"><div class="lbl">電話番号②</div><input class="w160" id="r-tel2" placeholder="09000000000" type="tel"></div>
+  <div class="row">
+    <div class="lbl">生年月日</div>
+    <input class="w70" id="r-birth-era" placeholder="令和" list="era-list" style="width:56px">
+    <datalist id="era-list"><option value="令和"><option value="平成"><option value="昭和"><option value="大正"><option value="明治"></datalist>
+    <input class="w50" id="r-birth-y" placeholder="年" type="number" min="1" max="99" style="width:52px">年
+    <input class="w50" id="r-birth-m" placeholder="月" type="number" min="1" max="12" style="width:44px">月
+    <input class="w50" id="r-birth-d" placeholder="日" type="number" min="1" max="31" style="width:44px">日
+    <span id="r-birth-preview" style="font-size:12px;color:#888;margin-left:4px"></span>
+  </div>
+  <div class="sec-hd">所属・紹介</div>
+  <div class="row">
+    <div class="lbl">所属組</div>
+    <select id="r-kumi" onchange="onKumiChange()">
+      <option value="">― 選択 ―</option>
+    </select>
+    <span style="font-size:11px;color:#aaa" id="r-kumi-note"></span>
+  </div>
+  <div class="row">
+    <div class="lbl">班（自動）</div>
+    <span id="r-han-disp" style="font-size:13px;color:#1a6bbf;font-weight:500">―</span>
+    <input type="hidden" id="r-han">
+  </div>
+  <div class="row"><div class="lbl">紹介者</div><input class="w160" id="r-shokai" placeholder="山北昌宏"></div>
+  <div class="sec-hd">入信状況</div>
+  <div class="row">
+    <div class="lbl">状態</div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+      <input type="checkbox" id="r-minyushin" style="width:16px;height:16px;" onchange="toggleMinyushin()">
+      未入信（入信前の折伏対象者）
+    </label>
+  </div>
+  <div id="r-nyushin-row" class="row"><div class="lbl">入信日</div><input type="date" id="r-nyushin"></div>
+  <div class="row"><div class="lbl">備考・メモ</div><textarea id="r-comment" placeholder="状況メモ・訪問記録など（名簿の名前をタップすると確認できます）" style="width:200px;min-height:60px;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;resize:vertical;"></textarea></div>
+  <div class="row" style="gap:10px;">
+    <button class="btn btn-p" onclick="registerMbr()">名簿に登録</button>
+    <button class="btn" onclick="clearReg()">クリア</button>
+    <span id="r-msg"></span>
+  </div>
+</div>
+
+<!-- ========== 名簿 ========== -->
+<div class="page" id="pg3">
+  <div class="row">
+    <div class="lbl">検索</div>
+    <input class="w160" id="mbr-search" placeholder="名前・組で絞り込み" oninput="renderRoster()">
+    <button class="btn btn-s" onclick="exportXlsx()">Excel出力</button>
+    <button class="btn btn-p" onclick="document.getElementById('xlsx-import').click()">Excelから読み込み</button>
+    <input type="file" id="xlsx-import" accept=".xlsx,.xls" style="display:none" onchange="importXlsx(this)">
+    <span id="import-msg" style="font-size:12px"></span>
+  </div>
+  <div id="mbr-count" style="font-size:12px;color:#888;padding:6px 14px;border-bottom:1px solid #eee;"></div>
+  <div id="mbr-list"></div>
+</div>
+
+<!-- ========== コメントポップアップ ========== -->
+<div id="comment-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:200;" onclick="closeCommentModal(event)">
+  <div style="background:#fff;margin:60px auto 20px;max-width:420px;border-radius:10px;padding:16px;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <span id="cm-title" style="font-weight:600;font-size:15px"></span>
+      <button onclick="closeCommentModal()" style="font-size:18px;border:none;background:none;cursor:pointer;color:#888">✕</button>
+    </div>
+    <div id="cm-meta" style="font-size:12px;color:#888;margin-bottom:10px;"></div>
+    <textarea id="cm-text" style="width:100%;min-height:120px;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;" placeholder="コメントを入力…"></textarea>
+    <div style="font-size:11px;color:#aaa;margin:4px 0 10px;">最終更新：<span id="cm-updated">―</span></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" onclick="saveComment()">保存</button>
+      <button class="btn" onclick="closeCommentModal()">閉じる</button>
+      <span id="cm-msg" style="font-size:12px;"></span>
+    </div>
+  </div>
+</div>
+<div id="edit-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:100;overflow-y:auto;">
+  <div style="background:#fff;margin:20px auto;max-width:480px;border-radius:10px;padding-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;">
+      <span style="font-weight:600;font-size:14px">メンバー編集</span>
+      <button onclick="closeEditModal()" style="font-size:18px;border:none;background:none;cursor:pointer;color:#888">✕</button>
+    </div>
+    <div class="sec-hd">氏名</div>
+    <div class="row"><div class="lbl">姓 <span style="color:#c0392b;font-size:10px">必須</span></div><input class="w120" id="e-sei"><div class="lbl" style="min-width:28px">名</div><input class="w120" id="e-mei"></div>
+    <div class="row"><div class="lbl">読み（姓）</div><input class="w120" id="e-sk"><div class="lbl" style="min-width:28px">名</div><input class="w120" id="e-mk"></div>
+    <div class="sec-hd">住所</div>
+    <div class="row"><div class="lbl">都道府県</div><input class="w120" id="e-pref"></div>
+    <div class="row"><div class="lbl">市区町村</div><input class="w160" id="e-city"></div>
+    <div class="row"><div class="lbl">それ以下</div><input class="w200" id="e-addr"></div>
+    <div class="sec-hd">連絡先・生年月日</div>
+    <div class="row"><div class="lbl">電話番号①</div><input class="w160" id="e-tel" type="tel"></div>
+    <div class="row"><div class="lbl">電話番号②</div><input class="w160" id="e-tel2" type="tel"></div>
+    <div class="row"><div class="lbl">生年月日</div><input class="w160" id="e-birth" placeholder="YYYY-MM-DD"></div>
+    <div class="sec-hd">所属・紹介</div>
+    <div class="row"><div class="lbl">所属組</div><select id="e-kumi" onchange="onEditKumiChange()"><option value="">― 選択 ―</option></select><span style="font-size:12px;color:#1a6bbf;margin-left:8px" id="e-han-disp">―</span><input type="hidden" id="e-han"></div>
+    <div class="row"><div class="lbl">紹介者</div><input class="w160" id="e-shokai"></div>
+    <div class="sec-hd">入信状況</div>
+    <div class="row"><div class="lbl">状態</div><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="e-minyushin" style="width:16px;height:16px;" onchange="toggleEditMinyushin()">未入信</label></div>
+    <div id="e-nyushin-row" class="row"><div class="lbl">入信日</div><input class="w160" id="e-nyushin" placeholder="YYYY-MM-DD"></div>
+    <div class="row"><div class="lbl">備考・メモ</div><textarea id="e-comment" style="width:200px;min-height:60px;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;resize:vertical;"></textarea></div>
+    <div class="row"><div class="lbl">集計対象</div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="e-aggtarget" style="width:16px;height:16px;">
+        集計タブに表示する
+      </label>
+    </div>
+    <div class="row" style="gap:10px;">
+      <button class="btn btn-p" onclick="saveEditMbr()">保存</button>
+      <button class="btn btn-w" onclick="deleteEditMbr()">削除</button>
+      <button class="btn" onclick="closeEditModal()">キャンセル</button>
+      <span id="e-msg" style="font-size:12px"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 折伏予定 ========== -->
+<div class="page" id="pg4">
+  <div class="sec-hd">折伏予定を追加</div>
+  <div class="row">
+    <div class="lbl">日にち</div>
+    <input type="date" id="fp-date">
+    <div class="lbl" style="min-width:40px">時間</div>
+    <input type="time" id="fp-time">
+  </div>
+  <div class="row">
+    <div class="lbl">班</div>
+    <select id="fp-han" onchange="fpUpdateMembers()">
+      <option value="">― 選択 ―</option>
+    </select>
+    <div class="lbl" style="min-width:28px">班員</div>
+    <select id="fp-member"><option value="">― 選択 ―</option></select>
+  </div>
+  <div class="row">
+    <div class="lbl">備考</div>
+    <input class="w200" id="fp-memo" placeholder="任意">
+    <button class="btn btn-p" onclick="addFukubokuPlan()">追加</button>
+    <span class="ok" id="fp-msg"></span>
+  </div>
+
+  <div class="sec-hd">予定一覧</div>
+  <div id="fp-list"></div>
+</div>
+
+<!-- ========== メール ========== -->
+<div class="page" id="pg5">
+  <div class="sec-hd">メール文を生成</div>
+  <div class="row">
+    <button class="btn btn-p" onclick="generateMail()">生成</button>
+    <span style="font-size:12px;color:#888">集計タブのデータをもとに生成します</span>
+  </div>
+  <div id="ml-output" style="display:none;">
+    <div class="sec-hd">プレビュー</div>
+    <div id="ml-preview" style="padding:10px 14px;font-size:13px;line-height:1.8;border-bottom:1px solid #eee;background:#fafafa;white-space:pre-wrap;word-break:break-all;"></div>
+    <div class="row">
+      <button class="btn btn-s" onclick="copyMail()">コピー</button>
+      <span class="ok" id="ml-msg"></span>
+    </div>
+    <textarea id="ml-text" style="position:absolute;left:-9999px;" readonly></textarea>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- ========== 設定 ========== -->
+<div class="page" id="pg6">
+  <div class="sec-hd">🔗 Google Sheets 同期設定</div>
+  <div class="row" style="font-size:12px;color:#888;padding:0 14px 6px;">
+    GASデプロイURL（web app URL）を貼り付けてください。スマホ・PCでデータが共有されます。
+  </div>
+  <div class="row" style="flex-wrap:wrap;gap:6px;">
+    <input id="gas-url-input" class="w200" style="flex:1;min-width:200px;font-size:11px;" placeholder="https://script.google.com/macros/s/..." oninput="">
+    <button class="btn btn-p" onclick="setGasUrl(document.getElementById('gas-url-input').value)">接続</button>
+    <button class="btn" onclick="gasLoad()">今すぐ同期</button>
+    <span id="sync-badge" style="font-size:12px;padding:2px 6px;"></span>
+  </div>
+  <div class="row">
+    <button class="btn btn-w" style="font-size:11px;" onclick="if(confirm('GAS URLを削除してローカルのみに戻しますか？')){setGasUrl('');updateSyncBadge('local');}">接続解除</button>
+  </div>
+  <div class="sec-hd">班の管理</div>
+  <div class="row" style="font-size:12px;color:#888;padding:0 14px 6px;">
+    集計・組設定で使う班名を登録・編集・削除できます。
+  </div>
+  <div id="han-table-wrap" style="padding:0 14px 10px;"></div>
+  <div class="row">
+    <div class="lbl">班名を追加</div>
+    <input class="w160" id="cfg-han-name" placeholder="例：山北昌宏">
+    <button class="btn btn-p" onclick="addHan()">追加</button>
+    <span class="ok" id="cfg-han-msg"></span>
+  </div>
+  <div class="sec-hd">組と班の対応管理</div>
+  <div class="row" style="font-size:12px;color:#888;padding:8px 14px;">
+    各組がどの班に所属するかを設定します。Excelから名簿を読み込むと自動的に追加されます。
+  </div>
+  <div id="kumi-table-wrap" style="padding:0 14px 10px;"></div>
+  <div class="row">
+    <div class="lbl">組名を追加</div>
+    <input class="w120" id="cfg-kumi-name" placeholder="例：山北組">
+    <select id="cfg-kumi-han">
+      <option value="">班を選択</option>
+    </select>
+    <button class="btn btn-p" onclick="addKumiMapping()">追加</button>
+    <span class="ok" id="cfg-msg"></span>
+  </div>
+  <div class="sec-hd">⚠️ データ管理</div>
+  <div class="row" style="flex-wrap:wrap;gap:8px;padding:6px 14px 10px;">
+    <button class="btn btn-w" onclick="resetRoster()">名簿を全削除</button>
+    <button class="btn btn-w" onclick="resetAggData()">集計データをリセット</button>
+    <button class="btn btn-w" onclick="resetAllData()">すべてのデータを初期化</button>
+    <span id="reset-msg" style="font-size:12px;"></span>
+  </div>
+  <div style="font-size:11px;color:#aaa;padding:0 14px 12px;">※ 削除したデータは元に戻せません。GAS同期中の場合はクラウド側も削除されます。</div>
+</div>
+<script>
+/* ===== 定数 ===== */
+const ABCC=['','A','B','C','D','E'];
+const AWt={'':0,A:1,B:.5,C:.2,D:0,E:0};
+const td=new Date().toISOString().slice(0,10);
+
+// 班リスト（localStorage＋GAS保存。初期値は空）
+let hanList=[]; // [{name:'道家豊光'}, ...]
+// HAN は hanList の別名として参照（後方互換）
+Object.defineProperty(window,'HAN',{get:()=>hanList});
+
+function saveHanList(){
+  try{localStorage.setItem('han_list',JSON.stringify(hanList));}catch(e){}
+  gasSave('hanList', hanList);
+}
+
+function renderHanTable(){
+  const wrap=document.getElementById('han-table-wrap');
+  if(!wrap) return;
+  if(!hanList.length){
+    wrap.innerHTML='<div style="font-size:13px;color:#888;padding:8px 14px">まだ登録されていません</div>';
+    return;
+  }
+  wrap.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid #ddd"><th style="text-align:left;padding:5px 8px;color:#888;font-weight:400">班名</th><th style="width:80px"></th></tr></thead><tbody>'
+    +hanList.map((h,i)=>`<tr style="border-bottom:1px solid #eee">
+      <td style="padding:5px 8px">
+        <input value="${h.name}" style="font-size:13px;border:none;border-bottom:1px solid #ddd;width:140px;padding:2px 4px;"
+          onchange="renameHan(${i},this.value)">
+      </td>
+      <td style="padding:5px 4px;text-align:center">
+        <button class="btn btn-w" style="font-size:11px;padding:3px 8px" onclick="deleteHan(${i})">削除</button>
+      </td>
+    </tr>`).join('')
+    +'</tbody></table>';
+}
+
+function addHan(){
+  const name=document.getElementById('cfg-han-name').value.trim();
+  if(!name){flash('cfg-han-msg','班名を入力してください');return;}
+  if(hanList.find(h=>h.name===name)){flash('cfg-han-msg','同じ班名がすでにあります');return;}
+  hanList.push({name});
+  saveHanList();
+  document.getElementById('cfg-han-name').value='';
+  renderHanTable();
+  renderKumiTable();
+  rebuildAllHanSelects();
+  flash('cfg-han-msg','追加しました');
+}
+
+function renameHan(idx, newName){
+  newName=newName.trim();
+  if(!newName) return;
+  const old=hanList[idx].name;
+  hanList[idx].name=newName;
+  Object.keys(kumiMap).forEach(k=>{ if(kumiMap[k]===old) kumiMap[k]=newName; });
+  roster.forEach(m=>{ if(m.han===old) m.han=newName; });
+  saveHanList();
+  saveKumiMap();
+  saveRoster();
+  renderHanTable();
+  renderKumiTable();
+  rebuildAllHanSelects();
+  renderRoster();
+}
+
+function deleteHan(idx){
+  const name=hanList[idx].name;
+  const inUse=roster.some(m=>m.han===name);
+  if(inUse && !confirm(`「${name}班」は名簿で使用中のメンバーがいます。\n削除すると該当メンバーの班が空欄になります。続けますか？`)) return;
+  if(!inUse && !confirm(`「${name}班」を削除しますか？`)) return;
+  hanList.splice(idx,1);
+  // kumiMapから参照を削除
+  Object.keys(kumiMap).forEach(k=>{ if(kumiMap[k]===name) kumiMap[k]=''; });
+  saveHanList();
+  saveKumiMap();
+  renderHanTable();
+  rebuildAllHanSelects();
+  renderKumiTable();
+}
+
+// 全ての班プルダウンを再構築
+function rebuildAllHanSelects(){
+  // 設定タブ：組→班の班プルダウン
+  const cfgHan=document.getElementById('cfg-kumi-han');
+  if(cfgHan) cfgHan.innerHTML='<option value="">班を選択</option>'+hanList.map(h=>'<option value="'+h.name+'">'+h.name+'班</option>').join('');
+  buildHanSelects();
+  rebuildFpHan();
+  renderKumiSelect();
+  renderEditKumiSelect();
+}
+
+// 集計対象メンバーを roster から動的に構築
+function getAggHan(){
+  const targets = roster.filter(m=>m.aggTarget);
+  const hanMap = {};
+  targets.forEach(m=>{
+    const h = m.han || '（班未設定）';
+    if(!hanMap[h]) hanMap[h]=[];
+    hanMap[h].push(m.sei+(m.mei||''));
+  });
+  return Object.entries(hanMap).map(([name,members])=>({name,members}));
+}
+function getAggAllMembers(){
+  return roster.filter(m=>m.aggTarget).map(m=>({han:m.han||'（班未設定）',name:m.sei+(m.mei||'')}));
+}
+
+/* ===== 集計項目定義 =====
+   type: 'grab_check' 掴み(ABC)+結果(チェック)  推移蓄積
+         'grab_num'   掴み(ABC)+結果(数値)       最終確定
+         'cumulative' 累計型(ABC+チェック、期間集計) 最終確定
+*/
+// type:
+//  'grab_check' 掴み(ABC)→結果(チェック) 結果保存でリセット
+//  'confirm'    チェック累計→確定保存でリセット（総幹部会）
+//  'kikanshi'   掴み(ABC)+部数(数値)→結果保存でリセット
+//  'kuyou'      掴み(ABC)+金額(数値)→結果保存でリセット（人数+金額集計）
+const DEFAULT_ITEMS=[
+  {id:'sunday',   label:'日曜勤行', type:'grab_check'},
+  {id:'sohkan',   label:'総幹部会', type:'confirm'},
+  {id:'sobu',     label:'総部集会', type:'grab_check'},
+  {id:'kikanshi', label:'機関紙',   type:'kikanshi'},
+  {id:'kuyou',    label:'御供養',   type:'kuyou'},
+  {id:'toyo',     label:'登用試験', type:'grab_check'},
+  {id:'kyu5',     label:'5級試験',  type:'grab_check'},
+  {id:'kyu4',     label:'4級試験',  type:'grab_check'},
+  {id:'kyu3',     label:'3級試験',  type:'grab_check'},
+];
+
+/* ===== 状態 ===== */
+let items=[...DEFAULT_ITEMS];
+let activeItemIds=['sunday'];
+let itemModes={}; // {itemId: 'grab'|'result'|'confirmed'}
+let aggData={}; // {memberKey: {itemId: {grab:'A', result:false|0|0.0, confirmed:false}}}
+let aggHistory=[]; // 結果保存・確定保存の履歴（掴みは含まない）
+let aggHistOpen=false;
+
+let hPeriod={start:'',end:''}, hHist=[], hHO=false;
+let roster=[];
+let kumiMap={}; // {組名: 班名}
+
+// ============================================================
+// Google Apps Script 連携
+// ============================================================
+let GAS_URL = '';
+try { GAS_URL = localStorage.getItem('gas_url') || ''; } catch(e){}
+let _syncTimer = null;
+
+function setGasUrl(url){
+  GAS_URL = url.trim();
+  try { localStorage.setItem('gas_url', GAS_URL); } catch(e){}
+  document.getElementById('gas-url-input').value = GAS_URL;
+  if(GAS_URL){ updateSyncBadge('syncing'); gasLoad(); }
+  else updateSyncBadge('local');
+}
+
+function updateSyncBadge(status, msg){
+  const el = document.getElementById('sync-badge');
+  if(!el) return;
+  const map = {
+    local:   {color:'#aaa',  text:'⚪ ローカル'},
+    syncing: {color:'#f39c12',text:'🔄 同期中…'},
+    synced:  {color:'#27ae60',text:'✅ 同期済'},
+    error:   {color:'#e74c3c',text:'❌ エラー'},
+  };
+  const s = map[status] || map.local;
+  el.textContent = s.text + (msg ? ' '+msg : '');
+  el.style.color = s.color;
+}
+
+async function gasLoad(){
+  if(!GAS_URL) return;
+  updateSyncBadge('syncing');
+  try {
+    const res = await fetch(GAS_URL+'?t='+Date.now());
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error||'fetch失敗');
+    const d = json.data;
+    const keyMap = {
+      roster:'roster', aggData:'aggData', aggHistory:'aggHistory',
+      hHist:'hHist', hPeriod:'hPeriod', fukubokuPlans:'fukubokuPlans',
+      kumiMap:'kumiMap', itemModes:'itemModes'
+    };
+    if(d.roster)        roster        = d.roster;
+    if(d.aggData)       aggData       = d.aggData;
+    if(d.aggHistory)    aggHistory    = d.aggHistory;
+    if(d.hHist)         hHist         = d.hHist;
+    if(d.hPeriod)       hPeriod       = d.hPeriod;
+    if(d.fukubokuPlans) fukubokuPlans = d.fukubokuPlans;
+    if(d.kumiMap)       kumiMap       = d.kumiMap;
+    if(d.itemModes)     itemModes     = d.itemModes;
+    if(d.hanList)       hanList       = d.hanList;
+    if(d.customItems && Array.isArray(d.customItems)){
+      d.customItems.forEach(x=>{ if(!items.find(i=>i.id===x.id)) items.push(x); });
+    }
+    // ローカルにも保存
+    const lsMap = {roster:'roster',aggData:'agg_data',aggHistory:'agg_hist',
+      hHist:'h_hist',hPeriod:'h_period',fukubokuPlans:'fukuboku_plans',
+      kumiMap:'kumi_map',itemModes:'item_modes',hanList:'han_list'};
+    Object.entries(lsMap).forEach(([k,lk])=>{ try{if(d[k]) localStorage.setItem(lk,JSON.stringify(d[k]));}catch(e){} });
+    initAggData(); rebuildAllHanSelects();
+    renderItemChecks(); renderAggTable(); renderAggSummary();
+    renderHCards(); renderHList(); renderRoster();
+    renderKumiSelect(); renderEditKumiSelect();
+    renderHanTable();
+    updateSyncBadge('synced');
+  } catch(err) {
+    updateSyncBadge('error', err.message);
+  }
+}
+
+// キーを指定してGASに保存（debounce 800ms）
+function gasSave(gasKey, value){
+  if(!GAS_URL) return;
+  clearTimeout(_syncTimer);
+  updateSyncBadge('syncing');
+  _syncTimer = setTimeout(async ()=>{
+    try {
+      const res = await fetch(GAS_URL, {
+        method:'POST', body:JSON.stringify({key:gasKey, value}),
+        headers:{'Content-Type':'text/plain'} // GASはapplication/jsonをCORSで弾くことがある
+      });
+      const json = await res.json();
+      if(!json.ok) throw new Error(json.error);
+      updateSyncBadge('synced');
+    } catch(err) { updateSyncBadge('error', err.message); }
+  }, 800);
+}
+
+/* ===== 初期化 ===== */
+function memberKey(han,name){return han+'__'+name;}
+function initAggData(){
+  getAggAllMembers().forEach(m=>{
+    const k=memberKey(m.han,m.name);
+    if(!aggData[k]) aggData[k]={};
+    items.forEach(item=>{
+      if(!aggData[k][item.id]){
+        const isNum=['kikanshi','kuyou'].includes(item.type);
+        aggData[k][item.id]={grab:'', result: isNum ? 0 : false, confirmed: false};
+      }
+    });
+  });
+}
+
+// 班ドロップダウンを生成（roster動的）
+function buildHanSelects(){
+  const aggHan = getAggHan();
+  const opts = '<option value="__all__">全班まとめ</option>'
+    + aggHan.map(h=>'<option value="'+h.name+'">'+h.name+'班</option>').join('');
+  document.getElementById('agg-han').innerHTML = opts;
+}
+
+/* ===== タブ切替 ===== */
+function sw(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',j===i));
+  if(i===3)renderRoster();
+  if(i===4)renderFukubokuList();
+  if(i===5)generateMail();
+  if(i===6){ renderKumiTable(); renderHanTable(); }
+}
+
+/* ===== 集計タブ ===== */
+
+// 項目チェックボックスを描画
+function renderItemChecks(){
+  const el=document.getElementById('item-checks');
+  el.innerHTML=items.map(item=>{
+    const active=activeItemIds.includes(item.id);
+    return`<div class="ic ${active?'active':''}" onclick="toggleItem('${item.id}')">${item.label}</div>`;
+  }).join('');
+}
+
+function toggleItem(id){
+  if(activeItemIds.includes(id)){
+    activeItemIds=activeItemIds.filter(x=>x!==id);
+  } else {
+    activeItemIds.push(id);
+    const item=items.find(x=>x.id===id);
+    getAggAllMembers().forEach(m=>{
+      const k=memberKey(m.han,m.name);
+      if(!aggData[k]) aggData[k]={};
+      if(!aggData[k][id]) aggData[k][id]={grab:'',result:item.type==='grab_num'?0:false};
+    });
+  }
+  renderItemChecks();
+  renderAggTable();
+  renderAggSummary();
+}
+
+function addCustomItem(){
+  const name=document.getElementById('custom-name').value.trim();
+  const type=document.getElementById('custom-type').value;
+  if(!name){alert('項目名を入力してください');return;}
+  const id='custom_'+Date.now();
+  const newItem={id,label:name,type,accumulate:type==='grab_check'&&confirm(`「${name}」は推移蓄積型にしますか？\nOK=推移蓄積（日曜勤行・総部集会と同じ）\nキャンセル=最終確定型`)};
+  items.push(newItem);
+  getAggAllMembers().forEach(m=>{
+    const k=memberKey(m.han,m.name);
+    if(!aggData[k]) aggData[k]={};
+    aggData[k][id]={grab:'',result:newItem.type==='grab_num'?0:false};
+  });
+  document.getElementById('custom-name').value='';
+  saveItems();
+  renderItemChecks();
+}
+
+// 項目ごとのモード切替
+function setItemMode(itemId, m){
+  itemModes[itemId]=m;
+  renderAggTable();
+  renderAggSummary();
+}
+
+function getItemMode(itemId){
+  if(itemModes[itemId]) return itemModes[itemId];
+  const item=items.find(x=>x.id===itemId);
+  if(!item) return 'grab';
+  if(item.type==='confirm') return 'confirm';
+  return 'grab';
+}
+
+function finalizeItem(itemId){
+  getAggAllMembers().forEach(m=>{
+    const k=memberKey(m.han,m.name);
+    if(!aggData[k]) aggData[k]={};
+    if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:false,confirmed:false};
+    aggData[k][itemId].confirmed=true;
+  });
+  itemModes[itemId]='confirmed';
+  renderAggTable(); renderAggSummary();
+  flash('agg-msg','確定しました。「確定保存」で記録してリセットします。');
+}
+
+// 集計テーブル描画
+function renderAggTable(){
+  if(!activeItemIds.length){
+    document.getElementById('agg-thead').innerHTML='';
+    document.getElementById('agg-tbody').innerHTML='<tr><td style="padding:14px;color:#888;font-size:13px">上の項目から集計したいものを選んでください</td></tr>';
+    return;
+  }
+  const hanVal=document.getElementById('agg-han').value;
+  const aggHan = getAggHan();
+  const targetHans=hanVal==='__all__'?aggHan:aggHan.filter(h=>h.name===hanVal);
+
+  // ヘッダー（項目ごとにモード切替ボタン）
+  const selItems=activeItemIds.map(id=>items.find(x=>x.id===id)).filter(Boolean);
+  // ヘッダーをdata属性方式で生成（テンプレートリテラルのネスト回避）
+  let theadRow = '<tr><th class="name-col">氏名</th>';
+  selItems.forEach(function(item){
+    const m=getItemMode(item.id);
+    let btns='';
+    if(item.type==='confirm'){
+      if(m==='confirmed'){
+        btns='<span style="font-size:10px;color:#1a8f5a;font-weight:500">✓確定済</span>';
+      } else {
+        btns='<button data-action="finalize" data-id="'+item.id+'" style="font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid #c0392b;cursor:pointer;background:#fff;color:#c0392b;font-weight:500">確定</button>';
+      }
+    } else {
+      const bgG=m==='grab'?'#1a6bbf':'#f0f0f0';
+      const fgG=m==='grab'?'#fff':'#666';
+      const bgR=m==='result'?'#1a6bbf':'#f0f0f0';
+      const fgR=m==='result'?'#fff':'#666';
+      btns='<button data-action="mode" data-id="'+item.id+'" data-val="grab" style="font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid #ccc;cursor:pointer;background:'+bgG+';color:'+fgG+'">掴み</button>'
+          +'<button data-action="mode" data-id="'+item.id+'" data-val="result" style="font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid #ccc;cursor:pointer;background:'+bgR+';color:'+fgR+'">結果</button>';
+    }
+    theadRow+='<th style="min-width:80px"><div>'+item.label+'</div><div style="display:flex;justify-content:center;gap:3px;margin-top:3px;flex-wrap:wrap;">'+btns+'</div></th>';
+  });
+  theadRow+='</tr>';
+  document.getElementById('agg-thead').innerHTML=theadRow;
+
+  // ボディ
+  let tbody='';
+  targetHans.forEach(h=>{
+    // 班ヘッダー行（全班表示時のみ）
+    if(hanVal==='__all__'){
+      tbody+=`<tr><td class="name-cell" colspan="${selItems.length+1}" style="background:#fafafa;font-size:11px;font-weight:500;color:#888;padding:4px 10px">${h.name}班</td></tr>`;
+    }
+    h.members.forEach(m=>{
+      const k=memberKey(h.name,m);
+      tbody+=`<tr><td class="name-cell">${m}</td>`;
+      selItems.forEach(item=>{
+        const isNum=['kikanshi','kuyou'].includes(item.type);
+        const d=aggData[k][item.id]||{grab:'',result:isNum?0:false,confirmed:false};
+        const imode=getItemMode(item.id);
+
+        if(item.type==='confirm'){
+          // 総幹部会: チェックのみ（確定済みなら色を変える）
+          const c=!!d.result;
+          const isDone=imode==='confirmed';
+          tbody+=`<td><button class="ckb ${c?'on':''}" onclick="${isDone?'':'togAgg'}('${k}','${item.id}')" style="${isDone?'opacity:0.6;cursor:default':''}">${c?'✓':'　'}</button></td>`;
+        } else if(imode==='grab'){
+          const s=d.grab||'';
+          tbody+=`<td><button class="abcb ${s?'s-'+s:'s-e'}" onclick="cycAgg('${k}','${item.id}')">${s||'―'}</button></td>`;
+        } else {
+          // 結果モード
+          const gs=d.grab||'';
+          const clr={'A':'#1D9E75','B':'#639922','C':'#BA7517','D':'#888','E':'#E24B4A'};
+          const gbadge=gs
+            ?`<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:500;margin-right:3px;background:${clr[gs]};color:#fff;opacity:0.85">${gs}</span>`
+            :'<span style="display:inline-block;width:18px;margin-right:3px"></span>';
+          if(isNum){
+            const v=d.result||0;
+            const step=item.type==='kuyou'?0.1:1;
+            tbody+=`<td>${gbadge}<div class="numcell" style="display:inline-flex">
+              <button class="numb" onclick="adjNum('${k}','${item.id}',${-step})">－</button>
+              <span class="numv">${item.type==='kuyou'?parseFloat(v).toFixed(1):v}</span>
+              <button class="numb" onclick="adjNum('${k}','${item.id}',${step})">＋</button>
+            </div></td>`;
+          } else {
+            const c=!!d.result;
+            tbody+=`<td><div style="display:inline-flex;align-items:center">${gbadge}<button class="ckb ${c?'on':''}" onclick="togAgg('${k}','${item.id}')">${c?'✓':'　'}</button></div></td>`;
+          }
+        }
+      });
+      tbody+='</tr>';
+    });
+    // 班小計行
+    if(hanVal==='__all__'||targetHans.length===1){
+      tbody+=`<tr class="summary-row"><td class="name-cell">　小計</td>`;
+      selItems.forEach(item=>{
+        const hanMembers=h.members;
+        const imode=getItemMode(item.id);
+        if(imode==='grab'){
+          const total=hanMembers.reduce((s,m)=>s+(AWt[aggData[memberKey(h.name,m)][item.id]?.grab]||0),0);
+          tbody+=`<td>${total.toFixed(1)}</td>`;
+        } else {
+          if(item.type==='grab_num'){
+            const total=hanMembers.reduce((s,m)=>s+(aggData[memberKey(h.name,m)][item.id]?.result||0),0);
+            tbody+=`<td>${total}</td>`;
+          } else {
+            const total=hanMembers.filter(m=>!!aggData[memberKey(h.name,m)][item.id]?.result).length;
+            tbody+=`<td>${total}</td>`;
+          }
+        }
+      });
+      tbody+='</tr>';
+    }
+  });
+
+  // 全体合計行
+  if(hanVal==='__all__'){
+    tbody+=`<tr class="summary-row"><td class="name-cell" style="font-weight:700">合計</td>`;
+    selItems.forEach(item=>{
+      const imode=getItemMode(item.id);
+      if(imode==='grab'){
+        const total=getAggAllMembers().reduce((s,m)=>s+(AWt[aggData[memberKey(m.han,m.name)][item.id]?.grab]||0),0);
+        tbody+=`<td style="font-weight:700">${total.toFixed(1)}</td>`;
+      } else {
+        if(item.type==='grab_num'){
+          const total=getAggAllMembers().reduce((s,m)=>s+(aggData[memberKey(m.han,m.name)][item.id]?.result||0),0);
+          tbody+=`<td style="font-weight:700">${total}</td>`;
+        } else {
+          const total=getAggAllMembers().filter(m=>!!aggData[memberKey(m.han,m.name)][item.id]?.result).length;
+          tbody+=`<td style="font-weight:700">${total}</td>`;
+        }
+      }
+    });
+    tbody+='</tr>';
+  }
+  document.getElementById('agg-tbody').innerHTML=tbody;
+}
+
+// サマリーカード
+function renderAggSummary(){
+  if(!activeItemIds.length){document.getElementById('agg-scards').innerHTML='';return;}
+  const selItems=activeItemIds.map(id=>items.find(x=>x.id===id)).filter(Boolean);
+  let html='';
+  selItems.forEach(item=>{
+    const imode=getItemMode(item.id);
+    let grabW=0, resultCount=0, resultAmt=0;
+    getAggAllMembers().forEach(m=>{
+      const d=aggData[memberKey(m.han,m.name)][item.id]||{};
+      grabW+=AWt[d.grab]||0;
+      if(item.type==='kuyou'){
+        if(d.result>0) resultCount++;
+        resultAmt+=parseFloat(d.result)||0;
+      } else if(item.type==='kikanshi'){
+        resultCount+=parseInt(d.result)||0;
+      } else if(d.result||d.confirmed){
+        resultCount++;
+      }
+    });
+    // 掴みフェーズの人数（御供養・機関紙はABC加重）
+    if(item.type==='kuyou'){
+      if(imode==='grab'){
+        html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${grabW.toFixed(1)}</div><div class="sc-s">掴み人数計</div></div>`;
+      } else {
+        html+=`<div class="sc"><div class="sc-l">${item.label} 人数</div><div class="sc-v">${resultCount}</div><div class="sc-s">結果</div></div>`;
+        html+=`<div class="sc"><div class="sc-l">${item.label} 金額</div><div class="sc-v">${resultAmt.toFixed(1)}</div><div class="sc-s">万円</div></div>`;
+      }
+    } else if(item.type==='kikanshi'){
+      if(imode==='grab'){
+        html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${grabW.toFixed(1)}</div><div class="sc-s">掴み計</div></div>`;
+      } else {
+        html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${resultCount}</div><div class="sc-s">部数</div></div>`;
+      }
+    } else if(item.type==='confirm'){
+      const total=getAggAllMembers().filter(m=>!!aggData[memberKey(m.han,m.name)][item.id]?.result).length;
+      html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${total}</div><div class="sc-s">${imode==='confirmed'?'確定済':'集計中'}</div></div>`;
+    } else {
+      if(imode==='grab'){
+        html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${grabW.toFixed(1)}</div><div class="sc-s">掴み計</div></div>`;
+      } else {
+        html+=`<div class="sc"><div class="sc-l">${item.label}</div><div class="sc-v">${resultCount}</div><div class="sc-s">結果</div></div>`;
+      }
+    }
+  });
+  document.getElementById('agg-scards').innerHTML=html;
+}
+
+function cycAgg(k,itemId){
+  if(!aggData[k]) aggData[k]={};
+  if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:false};
+  const cur=aggData[k][itemId].grab||'';
+  aggData[k][itemId].grab=ABCC[(ABCC.indexOf(cur)+1)%ABCC.length];
+  renderAggTable(); renderAggSummary();
+  gasSave('aggData', aggData);
+}
+function togAgg(k,itemId){
+  if(!aggData[k]) aggData[k]={};
+  if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:false};
+  aggData[k][itemId].result=!aggData[k][itemId].result;
+  renderAggTable(); renderAggSummary();
+  gasSave('aggData', aggData);
+}
+function adjNum(k,itemId,delta){
+  if(!aggData[k]) aggData[k]={};
+  if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:0};
+  aggData[k][itemId].result=Math.max(0,(aggData[k][itemId].result||0)+delta);
+  renderAggTable(); renderAggSummary();
+  gasSave('aggData', aggData);
+}
+
+// 掴み保存（リセットなし、上書き）
+
+// 結果保存（履歴に追加 → リセット）
+function saveResult(){
+  const date=document.getElementById('agg-date').value;
+  if(!date){flash('agg-msg','日付を選んでください');return;}
+  // 対象：結果モードの項目 + 確定済み項目
+  const targetIds=activeItemIds.filter(id=>{
+    const item=items.find(x=>x.id===id);if(!item)return false;
+    if(item.type==='confirm') return getItemMode(id)==='confirmed';
+    return getItemMode(id)==='result';
+  });
+  if(!targetIds.length){flash('agg-msg','結果モードまたは確定済みの項目がありません');return;}
+  const summary={};
+  targetIds.forEach(id=>{
+    const item=items.find(x=>x.id===id);if(!item)return;
+    if(item.type==='confirm'){
+      const count=getAggAllMembers().filter(m=>!!aggData[memberKey(m.han,m.name)][id]?.result).length;
+      summary[id]={label:item.label,type:item.type,count};
+    } else if(item.type==='kuyou'){
+      let count=0,amt=0,grabW=0;
+      getAggAllMembers().forEach(m=>{
+        const d=aggData[memberKey(m.han,m.name)][id]||{};
+        grabW+=AWt[d.grab]||0;
+        if(d.result>0){count++;amt+=parseFloat(d.result)||0;}
+      });
+      summary[id]={label:item.label,type:item.type,count,amt:parseFloat(amt.toFixed(1)),grabW:parseFloat(grabW.toFixed(1))};
+    } else if(item.type==='kikanshi'){
+      let units=0,grabW=0;
+      getAggAllMembers().forEach(m=>{
+        const d=aggData[memberKey(m.han,m.name)][id]||{};
+        grabW+=AWt[d.grab]||0;
+        units+=parseInt(d.result)||0;
+      });
+      summary[id]={label:item.label,type:item.type,units,grabW:parseFloat(grabW.toFixed(1))};
+    } else {
+      let count=0,grabW=0;
+      getAggAllMembers().forEach(m=>{
+        const d=aggData[memberKey(m.han,m.name)][id]||{};
+        grabW+=AWt[d.grab]||0;
+        if(d.result) count++;
+      });
+      summary[id]={label:item.label,type:item.type,count,grabW:parseFloat(grabW.toFixed(1))};
+    }
+  });
+  const entry={date,summary};
+  const i=aggHistory.findIndex(e=>e.date===date);
+  if(i>=0) aggHistory[i]=entry; else aggHistory.push(entry);
+  aggHistory.sort((a,b)=>a.date>b.date?-1:1);
+  try{localStorage.setItem('agg_hist',JSON.stringify(aggHistory));}catch(e){}
+  gasSave('aggHistory', aggHistory);
+  flash('agg-msg','保存しました');
+  renderAggHist_ifOpen();
+}
+
+// リセット
+// ・掴みモードの項目：何もしない
+// ・結果モードの項目：result + grab をリセット（ABCが復活しないよう）、モードは掴みに戻す
+// ・confirm型（総幹部会）：確定済み(confirmed)のときだけリセット。未確定はそのまま
+function resetResult(){
+  if(!confirm('リセットします。よろしいですか？'))return;
+  activeItemIds.forEach(function(id){
+    const item=items.find(function(x){return x.id===id;});
+    if(!item)return;
+    const mode=getItemMode(id);
+
+    if(item.type==='confirm'){
+      // 総幹部会：確定済みのときだけリセット
+      if(mode==='confirmed'){
+        getAggAllMembers().forEach(function(mem){
+          const k=memberKey(mem.han,mem.name);
+          if(!aggData[k]||!aggData[k][id])return;
+          aggData[k][id].result=false;
+          aggData[k][id].confirmed=false;
+        });
+        delete itemModes[id];
+      }
+      // 未確定（confirm中）はリセットしない
+    } else if(mode==='result'){
+      // 結果モード：result と grab 両方リセット、掴みモードに戻す
+      getAggAllMembers().forEach(function(mem){
+        const k=memberKey(mem.han,mem.name);
+        if(!aggData[k]||!aggData[k][id])return;
+        const d=aggData[k][id];
+        d.grab='';
+        d.result=(item.type==='kikanshi'||item.type==='kuyou')?0:false;
+        d.confirmed=false;
+      });
+      delete itemModes[id];
+    }
+    // 掴みモード（grab）は何もしない
+  });
+  flash('agg-msg','リセットしました');
+  renderAggTable();
+  renderAggSummary();
+}
+
+function renderAggHist_ifOpen(){
+  if(aggHistOpen) renderAggHist();
+}
+
+
+function toggleAggHist(){
+  aggHistOpen=!aggHistOpen;
+  document.getElementById('agg-hist-area').classList.toggle('open',aggHistOpen);
+  document.getElementById('agg-hl').textContent=(aggHistOpen?'▾':'▸')+' 過去の記録を見る';
+  if(aggHistOpen) renderAggHist();
+}
+
+function renderAggHist(){
+  const el=document.getElementById('agg-hist-area');
+  if(!aggHistory.length){el.innerHTML='<div style="font-size:13px;color:#888">まだ記録がありません</div>';return;}
+  let h=`<table class="htbl"><thead><tr><th>日付</th><th>項目</th><th>結果</th></tr></thead><tbody>`;
+  aggHistory.forEach(e=>{
+    const entries=Object.entries(e.summary||{});
+    if(!entries.length) return;
+    entries.forEach(([id,s],si)=>{
+      let resultStr='';
+      if(s.type==='confirm') resultStr=`${s.count}人`;
+      else if(s.type==='kuyou') resultStr=`${s.count}人 / ${s.amt}万円`;
+      else if(s.type==='kikanshi') resultStr=`${s.units}部`;
+      else resultStr=`${s.count}人`;
+      h+=`<tr>
+        ${si===0?`<td rowspan="${entries.length}" style="vertical-align:top;white-space:nowrap">${e.date}</td>`:''}
+        <td>${s.label}</td><td>${resultStr}</td>
+      </tr>`;
+    });
+  });
+  el.innerHTML=h+'</tbody></table>';
+}
+
+/* ===== 折伏成果 ===== */
+function getHTotal(){if(!hPeriod.start)return 0;return roster.filter(m=>!m.minyushin&&m.nyushin&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end).length;}
+function getHByHan(){const aggHan=getAggHan();const mp={};aggHan.forEach(h=>mp[h.name]=0);if(!hPeriod.start)return mp;roster.filter(m=>!m.minyushin&&m.nyushin&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end).forEach(m=>{if(mp[m.han]!=null)mp[m.han]++;});return mp;}
+function renderHCards(){
+  const total=getHTotal(),byHan=getHByHan();
+  const top=Object.entries(byHan).sort((a,b)=>b[1]-a[1])[0];
+  const period=hPeriod.start?`${hPeriod.start}〜${hPeriod.end}`:'未設定';
+  const el=document.getElementById('h-cards');
+  if(el) el.innerHTML=`<div class="sc"><div class="sc-l">期間合計</div><div class="sc-v">${total}</div><div class="sc-s">${period}</div></div><div class="sc"><div class="sc-l">最多班</div><div class="sc-v">${top&&top[1]>0?top[1]:'―'}</div><div class="sc-s">${top&&top[1]>0?top[0]+'班':''}</div></div>`;
+}
+function renderHList(){
+  const members=roster.filter(m=>!m.minyushin&&m.nyushin&&hPeriod.start&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end);
+  const el=document.getElementById('h-list');if(!el)return;
+  if(!members.length){el.innerHTML='<div style="font-size:13px;color:#888;padding:10px 14px">期間内の入信者はいません</div>';return;}
+  let html='';
+  const aggHan=getAggHan();
+  aggHan.forEach(h=>{
+    const ms=members.filter(m=>m.han===h.name);if(!ms.length)return;
+    html+=`<div style="font-size:12px;font-weight:500;color:#888;padding:5px 14px 2px;background:#fafafa">${h.name}班</div>`;
+    ms.forEach(m=>{html+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-bottom:1px solid #eee;font-size:13px"><span style="font-weight:500;min-width:80px">${m.sei}${m.mei}</span><span style="font-size:11px;color:#888">${m.nyushin||''}</span><span style="font-size:11px;color:#888">${m.shokai?'紹介：'+m.shokai:''}</span></div>`;});
+  });
+  el.innerHTML=html;
+}
+function saveHP(){hPeriod={start:document.getElementById('h-start').value,end:document.getElementById('h-end').value};try{localStorage.setItem('h_period',JSON.stringify(hPeriod));}catch(e){}gasSave('hPeriod',hPeriod);flash('h-pmsg','設定しました');renderHCards();renderHList();}
+function saveHR(){
+  const date=document.getElementById('h-rdate').value;
+  const e={date,total:getHTotal(),byHan:getHByHan()};
+  const i=hHist.findIndex(x=>x.date===date);if(i>=0)hHist[i]=e;else hHist.push(e);
+  hHist.sort((a,b)=>a.date>b.date?-1:1);
+  try{localStorage.setItem('h_hist',JSON.stringify(hHist));}catch(e){}
+  gasSave('hHist',hHist);
+  flash('h-rmsg','保存しました');if(hHO)renderHHist();
+}
+function toggleHH(){hHO=!hHO;document.getElementById('h-hist').classList.toggle('open',hHO);document.getElementById('h-hl').textContent=(hHO?'▾':'▸')+' 過去の法戦記録';if(hHO)renderHHist();}
+function renderHHist(){const el=document.getElementById('h-hist');if(!hHist.length){el.innerHTML='<div style="font-size:13px;color:#888">まだ記録がありません</div>';return;}let h=`<table class="htbl"><thead><tr><th>報告日</th><th>合計</th></tr></thead><tbody>`;hHist.forEach(e=>{h+=`<tr><td>${e.date}</td><td>${e.total}名</td></tr>`;});el.innerHTML=h+'</tbody></table>';}
+
+/* ===== 入信者登録 ===== */
+function gv(id){return document.getElementById(id)?.value.trim()||'';}
+function sv(id,v){const el=document.getElementById(id);if(el)el.value=v||'';}
+
+// ① 読み自動入力（変換前のひらがなを取得）
+function onNameInput(field){
+  const inputEl = document.getElementById(field==='sei'?'r-sei':'r-mei');
+  const readEl  = document.getElementById(field==='sei'?'r-sk':'r-mk');
+  if(inputEl._bound) return;
+  inputEl._bound = true;
+  inputEl._lastKana = '';
+
+  inputEl.addEventListener('compositionstart', function(){
+    inputEl._lastKana = '';
+  });
+  // compositionupdateで変換中のひらがな（未確定文字）を随時保存
+  inputEl.addEventListener('compositionupdate', function(e){
+    const d = e.data || '';
+    // ひらがな・カタカナのみを読みとして記録（漢字に変換されていない状態）
+    if(/^[ぁ-んァ-ヶー゛゜ａ-ｚ]+$/.test(d)){
+      inputEl._lastKana = d;
+    }
+  });
+  inputEl.addEventListener('compositionend', function(){
+    if(inputEl._lastKana && !readEl.value){
+      readEl.value = inputEl._lastKana;
+    }
+    inputEl._lastKana = '';
+  });
+}
+
+// ② 郵便番号から住所自動入力
+let _zipTimer=null;
+function onZipInput(el){
+  clearTimeout(_zipTimer);
+  const raw = el.value.replace(/[^\d]/g,'');
+  if(raw.length===7){
+    document.getElementById('r-zip-msg').textContent='検索中…';
+    _zipTimer=setTimeout(()=>fetchZip(raw),300);
+  }
+}
+function fetchZip(zip){
+  fetch('https://zipcloud.ibsrio.com/api/search?zipcode='+zip)
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.results&&d.results[0]){
+        const r=d.results[0];
+        document.getElementById('r-pref').value=r.address1||'';
+        document.getElementById('r-city').value=(r.address2||'')+(r.address3||'');
+        document.getElementById('r-zip-msg').textContent='✓';
+        setTimeout(()=>document.getElementById('r-zip-msg').textContent='',2000);
+      } else {
+        document.getElementById('r-zip-msg').textContent='見つかりません';
+      }
+    })
+    .catch(()=>{
+      // CORSエラー対策：zipcloudが失敗したらherokサービスで試みる
+      fetch('https://zip-cloud.appspot.com/api/search?zipcode='+zip)
+        .then(r=>r.json())
+        .then(d=>{
+          if(d.results&&d.results[0]){
+            const r=d.results[0];
+            document.getElementById('r-pref').value=r.address1||'';
+            document.getElementById('r-city').value=(r.address2||'')+(r.address3||'');
+            document.getElementById('r-zip-msg').textContent='✓';
+            setTimeout(()=>document.getElementById('r-zip-msg').textContent='',2000);
+          } else {
+            document.getElementById('r-zip-msg').textContent='エラー';
+          }
+        })
+        .catch(()=>document.getElementById('r-zip-msg').textContent='エラー');
+    });
+}
+
+// ③ 和暦→西暦変換
+const ERA_BASE={令和:2018,平成:1988,昭和:1925,大正:1911,明治:1867};
+function warekiToSeireki(era,y){
+  const base=ERA_BASE[era];
+  if(!base||!y)return null;
+  return base+parseInt(y);
+}
+function getBirthValue(){
+  const era=document.getElementById('r-birth-era').value.trim();
+  const y=document.getElementById('r-birth-y').value.trim();
+  const mo=document.getElementById('r-birth-m').value.trim();
+  const d=document.getElementById('r-birth-d').value.trim();
+  if(!y)return '';
+  let year;
+  if(era&&ERA_BASE[era]){
+    year=warekiToSeireki(era,y);
+  } else if(/^\d{4}$/.test(y)){
+    // 西暦直入力
+    year=parseInt(y);
+  } else {
+    return '';
+  }
+  if(!year)return '';
+  const mm=(mo||'1').padStart(2,'0');
+  const dd=(d||'1').padStart(2,'0');
+  const result=year+'-'+mm+'-'+dd;
+  // プレビュー更新
+  document.getElementById('r-birth-preview').textContent=year+'年'+mm+'月'+dd+'日';
+  return result;
+}
+
+// ④ 所属組変更で班を自動表示
+function onKumiChange(){
+  const kumi=document.getElementById('r-kumi').value;
+  const han=kumiMap[kumi]||'';
+  document.getElementById('r-han').value=han;
+  document.getElementById('r-han-disp').textContent=han?han+'班':'―';
+  document.getElementById('r-kumi-note').textContent=han?'':'（組と班の対応が未設定です→設定タブで登録）';
+}
+
+// 組プルダウンを再描画
+function renderKumiSelect(){
+  const sel=document.getElementById('r-kumi');
+  if(!sel)return;
+  const cur=sel.value;
+  const names=Object.keys(kumiMap).sort();
+  sel.innerHTML='<option value="">― 選択 ―</option>'+names.map(k=>'<option value="'+k+'">'+k+'</option>').join('');
+  if(cur)sel.value=cur;
+}
+
+function saveKumiMap(){
+  try{localStorage.setItem('kumi_map',JSON.stringify(kumiMap));}catch(e){}
+  gasSave('kumiMap', kumiMap);
+}
+
+// ⑤ 設定タブ：組管理テーブル
+function renderKumiTable(){
+  const wrap=document.getElementById('kumi-table-wrap');
+  const names=Object.keys(kumiMap).sort();
+  if(!names.length){wrap.innerHTML='<div style="font-size:13px;color:#888;padding:8px 0">まだ登録されていません</div>';return;}
+  let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid #ddd"><th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">組名</th><th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">所属班</th><th style="width:60px"></th></tr></thead><tbody>';
+  names.forEach(kumi=>{
+    h+='<tr style="border-bottom:1px solid #eee">'
+      +'<td style="padding:5px 4px">'+kumi+'</td>'
+      +'<td style="padding:5px 4px"><select onchange="changeKumiHan(\''+kumi+'\',this.value)" style="font-size:12px;padding:3px 6px">'
+      +'<option value="">― 選択 ―</option>'
+      +HAN.map(h2=>'<option value="'+h2.name+'"'+(kumiMap[kumi]===h2.name?' selected':'')+'>'+h2.name+'班</option>').join('')
+      +'</select></td>'
+      +'<td style="padding:5px 4px;text-align:center"><button class="btn btn-w" style="font-size:11px;padding:2px 8px" onclick="deleteKumi(\''+kumi+'\')">削除</button></td>'
+      +'</tr>';
+  });
+  wrap.innerHTML=h+'</tbody></table>';
+}
+
+function changeKumiHan(kumi,han){
+  kumiMap[kumi]=han;
+  saveKumiMap();
+  renderKumiSelect();
+}
+function deleteKumi(kumi){
+  delete kumiMap[kumi];
+  saveKumiMap();
+  renderKumiTable();
+  renderKumiSelect();
+}
+function addKumiMapping(){
+  const name=document.getElementById('cfg-kumi-name').value.trim();
+  const han=document.getElementById('cfg-kumi-han').value;
+  if(!name){flash('cfg-msg','組名を入力してください');return;}
+  kumiMap[name]=han;
+  saveKumiMap();
+  document.getElementById('cfg-kumi-name').value='';
+  renderKumiTable();
+  renderKumiSelect();
+  flash('cfg-msg','追加しました');
+}
+
+function toggleMinyushin(){
+  const isMini = document.getElementById('r-minyushin').checked;
+  document.getElementById('r-nyushin-row').style.display = isMini ? 'none' : '';
+  if(isMini) sv('r-nyushin','');
+}
+
+function registerMbr(){
+  const sei=gv('r-sei');
+  if(!sei){showMsg('r-msg','姓を入力してください','err');return;}
+  const mei=gv('r-mei');
+  const minyushin=document.getElementById('r-minyushin').checked;
+  const birth=getBirthValue();
+  const m={
+    id:Date.now(),sei,mei,
+    seiK:gv('r-sk'),meiK:gv('r-mk'),
+    pref:gv('r-pref'),city:gv('r-city'),addr:gv('r-addr'),
+    tel:gv('r-tel').replace(/[-ー－]/g,''),
+    tel2:gv('r-tel2').replace(/[-ー－]/g,''),
+    birth,
+    kumi:document.getElementById('r-kumi').value,
+    han:document.getElementById('r-han').value,
+    shokai:gv('r-shokai'),
+    nyushin:minyushin?'':gv('r-nyushin'),
+    biko:'',
+    comment:document.getElementById('r-comment').value.trim(),
+    commentUpdated:document.getElementById('r-comment').value.trim() ? td : '',
+    minyushin
+  };
+  roster.push(m);saveRoster();
+  buildHanSelects();rebuildFpHan();
+  if(m.aggTarget) initAggData();
+  showMsg('r-msg',(sei+(mei||''))+' を登録しました','ok');clearReg();renderHCards();renderHList();
+}
+
+function clearReg(){
+  ['r-sei','r-mei','r-sk','r-mk','r-pref','r-city','r-addr','r-tel','r-tel2','r-zip','r-shokai','r-nyushin'].forEach(id=>sv(id,''));
+  ['r-birth-era','r-birth-y','r-birth-m','r-birth-d'].forEach(id=>sv(id,''));
+  document.getElementById('r-birth-preview').textContent='';
+  document.getElementById('r-zip-msg').textContent='';
+  const rc=document.getElementById('r-comment'); if(rc) rc.value='';
+  document.getElementById('r-kumi').value='';
+  document.getElementById('r-han').value='';
+  document.getElementById('r-han-disp').textContent='―';
+  document.getElementById('r-kumi-note').textContent='';
+  document.getElementById('r-minyushin').checked=false;
+  document.getElementById('r-nyushin-row').style.display='';
+}
+function saveRoster(){
+  try{localStorage.setItem('roster',JSON.stringify(roster));}catch(e){}
+  gasSave('roster', roster);
+}
+
+/* ===== 名簿 ===== */
+function renderRoster(){
+  const q=(document.getElementById('mbr-search')?.value||'').toLowerCase();
+  const filtered=q?roster.filter(m=>`${m.sei}${m.mei}${m.seiK}${m.meiK}${m.kumi}${m.han}`.toLowerCase().includes(q)):roster;
+  const aggCount=roster.filter(m=>m.aggTarget).length;
+  document.getElementById('mbr-count').textContent=`${filtered.length}名 / 計${roster.length}名（集計対象：${aggCount}名）`;
+  if(!filtered.length){document.getElementById('mbr-list').innerHTML='<div style="padding:12px 14px;font-size:13px;color:#888">該当者なし</div>';return;}
+  document.getElementById('mbr-list').innerHTML=filtered.map(m=>{
+    const nameDisp=m.sei+(m.mei||'');
+    const aggOn=!!m.aggTarget;
+    const hasComment=!!(m.comment||'').trim();
+    return `<div style="display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid #eee;gap:8px;flex-wrap:nowrap;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span style="font-size:14px;font-weight:500;cursor:pointer;color:#1a6bbf;text-decoration:underline dotted;" onclick="openCommentModal('${m.id}')">${nameDisp}</span>
+          ${m.minyushin?'<span class="tag" style="background:#ffeeba;color:#856404;border:1px solid #ffc107">未入信</span>':m.nyushin?'<span class="tag">入信済</span>':''}
+          ${aggOn?'<span class="tag" style="background:#d4edda;color:#155724;border:1px solid #28a745">集計</span>':''}
+          ${hasComment?'<span style="font-size:11px;color:#888">💬</span>':''}
+        </div>
+        <div style="font-size:11px;color:#888">${m.seiK||''}${m.meiK||''} ${m.kumi||''} ${m.han?m.han+'班':''}</div>
+        ${m.tel?`<div style="font-size:11px;color:#888">📞 ${m.tel}${m.tel2?' / '+m.tel2:''}</div>`:''}
+      </div>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:#555;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+        <input type="checkbox" ${aggOn?'checked':''} onchange="toggleAggTarget('${m.id}',this.checked)" style="width:15px;height:15px;">集計
+      </label>
+      <button class="btn" style="font-size:11px;padding:3px 10px;flex-shrink:0;" onclick="openEditModal('${m.id}')">編集</button>
+    </div>`;
+  }).join('');
+}
+
+function toggleAggTarget(id, checked){
+  const m=roster.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  m.aggTarget=checked;
+  saveRoster();
+  // aggDataに新規メンバーを追加
+  if(checked){
+    const name=m.sei+(m.mei||'');
+    const han=m.han||'（班未設定）';
+    const k=memberKey(han,name);
+    if(!aggData[k]) aggData[k]={};
+    items.forEach(item=>{
+      if(!aggData[k][item.id]){
+        const isNum=['kikanshi','kuyou'].includes(item.type);
+        aggData[k][item.id]={grab:'',result:isNum?0:false,confirmed:false};
+      }
+    });
+  }
+  buildHanSelects();
+  rebuildFpHan();
+  renderAggTable();
+  renderAggSummary();
+  renderRoster();
+}
+
+function rebuildFpHan(){
+  const aggHan=getAggHan();
+  const fpHan=document.getElementById('fp-han');
+  if(fpHan) fpHan.innerHTML='<option value="">― 選択 ―</option>'+aggHan.map(h=>'<option value="'+h.name+'">'+h.name+'班</option>').join('');
+}
+
+/* ===== コメントポップアップ ===== */
+let _commentId = null;
+
+function openCommentModal(id){
+  const m=roster.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  _commentId=m.id;
+  const nameDisp=m.sei+(m.mei||'');
+  document.getElementById('cm-title').textContent=nameDisp;
+  const meta=[];
+  if(m.nyushin) meta.push('入信日：'+m.nyushin);
+  if(m.kumi) meta.push(m.kumi);
+  if(m.han) meta.push(m.han+'班');
+  if(m.tel) meta.push('📞 '+m.tel+(m.tel2?' / '+m.tel2:''));
+  const bikoVal = m.comment||m.biko||'';
+  if(bikoVal) meta.push('備考：'+bikoVal);
+  document.getElementById('cm-meta').textContent=meta.join('　');
+  document.getElementById('cm-text').value=m.comment||(m.biko||'');
+  document.getElementById('cm-updated').textContent=m.commentUpdated||'なし';
+  document.getElementById('cm-msg').textContent='';
+  document.getElementById('comment-modal').style.display='';
+  setTimeout(()=>document.getElementById('cm-text').focus(),100);
+}
+
+function closeCommentModal(e){
+  if(e && e.target!==document.getElementById('comment-modal')) return;
+  document.getElementById('comment-modal').style.display='none';
+  _commentId=null;
+}
+
+function saveComment(){
+  if(!_commentId) return;
+  const m=roster.find(x=>String(x.id)===String(_commentId));
+  if(!m) return;
+  m.comment=document.getElementById('cm-text').value.trim();
+  m.commentUpdated=td;
+  document.getElementById('cm-updated').textContent=td;
+  saveRoster();
+  renderRoster();
+  document.getElementById('cm-msg').textContent='保存しました';
+  document.getElementById('cm-msg').style.color='#27ae60';
+  setTimeout(()=>document.getElementById('cm-msg').textContent='',2000);
+}
+let _editingId = null;
+
+function renderEditKumiSelect(){
+  const sel=document.getElementById('e-kumi');
+  if(!sel) return;
+  const cur=sel.value;
+  const names=Object.keys(kumiMap).sort();
+  sel.innerHTML='<option value="">― 選択 ―</option>'+names.map(k=>'<option value="'+k+'">'+k+'</option>').join('');
+  if(cur) sel.value=cur;
+}
+
+function onEditKumiChange(){
+  const kumi=document.getElementById('e-kumi').value;
+  const han=kumiMap[kumi]||'';
+  document.getElementById('e-han').value=han;
+  document.getElementById('e-han-disp').textContent=han?han+'班':'―';
+}
+
+function toggleEditMinyushin(){
+  const isMini=document.getElementById('e-minyushin').checked;
+  document.getElementById('e-nyushin-row').style.display=isMini?'none':'';
+}
+
+function openEditModal(id){
+  const m=roster.find(x=>String(x.id)===String(id));
+  if(!m) return;
+  _editingId=m.id;
+  sv('e-sei',m.sei);sv('e-mei',m.mei||'');
+  sv('e-sk',m.seiK||'');sv('e-mk',m.meiK||'');
+  sv('e-pref',m.pref||'');sv('e-city',m.city||'');sv('e-addr',m.addr||'');
+  sv('e-tel',m.tel||'');sv('e-tel2',m.tel2||'');sv('e-birth',m.birth||'');
+  renderEditKumiSelect();
+  sv('e-kumi',m.kumi||'');
+  document.getElementById('e-han').value=m.han||'';
+  document.getElementById('e-han-disp').textContent=m.han?m.han+'班':'―';
+  sv('e-shokai',m.shokai||'');sv('e-nyushin',m.nyushin||'');
+  const ec=document.getElementById('e-comment'); if(ec) ec.value=m.comment||(m.biko||'');
+  document.getElementById('e-minyushin').checked=!!m.minyushin;
+  document.getElementById('e-nyushin-row').style.display=m.minyushin?'none':'';
+  document.getElementById('e-aggtarget').checked=!!m.aggTarget;
+  document.getElementById('e-msg').textContent='';
+  document.getElementById('edit-modal').style.display='';
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').style.display='none';
+  _editingId=null;
+}
+
+function saveEditMbr(){
+  if(!_editingId) return;
+  const sei=document.getElementById('e-sei').value.trim();
+  if(!sei){document.getElementById('e-msg').textContent='姓は必須です';document.getElementById('e-msg').style.color='#c0392b';return;}
+  const idx=roster.findIndex(x=>String(x.id)===String(_editingId));
+  if(idx<0) return;
+  const minyushin=document.getElementById('e-minyushin').checked;
+  const aggTarget=document.getElementById('e-aggtarget').checked;
+  const oldHan=roster[idx].han;
+  const oldName=roster[idx].sei+(roster[idx].mei||'');
+  roster[idx]={
+    ...roster[idx],
+    sei,mei:document.getElementById('e-mei').value.trim(),
+    seiK:document.getElementById('e-sk').value.trim(),meiK:document.getElementById('e-mk').value.trim(),
+    pref:document.getElementById('e-pref').value.trim(),city:document.getElementById('e-city').value.trim(),
+    addr:document.getElementById('e-addr').value.trim(),
+    tel:document.getElementById('e-tel').value.trim().replace(/[-ー－]/g,''),
+    tel2:document.getElementById('e-tel2').value.trim().replace(/[-ー－]/g,''),
+    birth:document.getElementById('e-birth').value.trim(),
+    kumi:document.getElementById('e-kumi').value,han:document.getElementById('e-han').value,
+    shokai:document.getElementById('e-shokai').value.trim(),
+    nyushin:minyushin?'':document.getElementById('e-nyushin').value.trim(),
+    biko:'',
+    comment:(document.getElementById('e-comment').value||'').trim(),
+    commentUpdated:(document.getElementById('e-comment').value||'').trim() ? td : (roster[idx].commentUpdated||''),
+    minyushin,aggTarget
+  };
+  // aggDataのキーを更新（名前or班が変わった場合）
+  const newHan=roster[idx].han||'（班未設定）';
+  const newName=sei+(document.getElementById('e-mei').value.trim()||'');
+  const oldKey=memberKey(oldHan||'（班未設定）',oldName);
+  const newKey=memberKey(newHan,newName);
+  if(oldKey!==newKey && aggData[oldKey]){
+    aggData[newKey]=aggData[oldKey];
+    delete aggData[oldKey];
+  }
+  saveRoster();
+  buildHanSelects();
+  rebuildFpHan();
+  renderAggTable();
+  renderAggSummary();
+  renderHCards();renderHList();
+  renderRoster();
+  closeEditModal();
+}
+
+function deleteEditMbr(){
+  if(!_editingId) return;
+  if(!confirm('この人を名簿から削除しますか？')) return;
+  roster=roster.filter(x=>String(x.id)!==String(_editingId));
+  saveRoster();
+  buildHanSelects();
+  rebuildFpHan();
+  renderAggTable();
+  renderAggSummary();
+  renderRoster();
+  closeEditModal();
+}
+function exportXlsx(){
+  if(!roster.length){alert('登録データがありません');return;}
+  // 日付文字列→Excelシリアル値（1900年1月1日=1）
+  function toSerial(s){
+    if(!s) return '';
+    const d=new Date(s);
+    if(isNaN(d)) return s;
+    // Excelのシリアル値：1900/1/1=1（うるう年バグで+2）
+    return Math.floor((d - new Date(Date.UTC(1899,11,30)))/86400000);
+  }
+  // 電話番号からハイフンを除去して数値に
+  function toTelNum(s){
+    if(!s) return '';
+    const n=String(s).replace(/[-ー－\s]/g,'');
+    return /^\d+$/.test(n) ? Number(n) : n;
+  }
+  const rows=roster.map((m,i)=>({
+    'No.':i+1,
+    '姓':m.sei,'名':m.mei,
+    '読み（姓）':m.seiK,'読み（名）':m.meiK,
+    '都道府県':m.pref,'市区町村':m.city,'住所':m.addr,
+    '電話番号①':toTelNum(m.tel),
+    '電話番号②':toTelNum(m.tel2||''),
+    '生年月日':toSerial(m.birth),
+    '所属組':m.kumi,
+    '紹介者':m.shokai,
+    '入信日':toSerial(m.nyushin),
+    '備考':m.comment||m.biko||'',
+    'コメント更新日':m.commentUpdated||'',
+    '集計対象':m.aggTarget?'○':'',
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'入信者名簿');
+  XLSX.writeFile(wb,`入信者名簿_${td}.xlsx`);
+}
+
+function importXlsx(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(!rows.length){ showMsg('import-msg','データが空です','err'); return; }
+
+      // 列名の揺れに対応するマッピング
+      function col(row, ...keys){
+        for(const k of keys){
+          if(row[k]!==undefined && row[k]!=='') return String(row[k]).trim();
+        }
+        return '';
+      }
+      // 日付型セルを YYYY-MM-DD 文字列に変換
+      function toDateStr(v){
+        if(!v) return '';
+        if(v instanceof Date){
+          return v.toISOString().slice(0,10);
+        }
+        const s = String(v).trim();
+        // YYYY/MM/DD や YYYY-MM-DD → YYYY-MM-DD
+        const m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+        return s;
+      }
+
+      let added = 0, skipped = 0;
+      rows.forEach(row => {
+        const sei = col(row,'姓','sei');
+        const mei = col(row,'名','mei');
+        if(!sei){ skipped++; return; }
+        const nyushin = toDateStr(col(row,'入信日','nyushin'));
+        const miny = col(row,'未入信','minyushin')==='○' || col(row,'未入信')===true;
+        const dup = roster.find(m => m.sei===sei && m.mei===mei && (m.nyushin===nyushin||(!m.nyushin&&!nyushin)));
+        if(dup){ skipped++; return; }
+        // 所属組を取得（「所属組」列または「班」列を組として扱う）
+        const kumiVal = col(row,'所属組','kumi') || col(row,'班','han');
+        // 班はkumiMapから自動決定（班列は使わない）
+        const hanVal = kumiVal ? (kumiMap[kumiVal] || '') : '';
+        roster.push({
+          id: Date.now() + added,
+          sei, mei,
+          seiK:  col(row,'読み（姓）','seiK','姓読み'),
+          meiK:  col(row,'読み（名）','meiK','名読み'),
+          pref:  col(row,'都道府県','pref'),
+          city:  col(row,'市区町村','city'),
+          addr:  col(row,'住所','addr'),
+          tel:   col(row,'電話番号','tel'),
+          birth: toDateStr(col(row,'生年月日','birth')),
+          kumi:  kumiVal,
+          han:   hanVal,
+          shokai:col(row,'紹介者','shokai'),
+          nyushin,
+          biko:  col(row,'備考','biko'),
+          hossen: false,
+          minyushin: miny,
+          aggTarget: col(row,'集計対象')==='○',
+        });
+        added++;
+      });
+      // kumiMapに未登録の組があれば設定タブで設定するよう促す
+      const unmapped = [...new Set(roster.map(m=>m.kumi).filter(k=>k&&!kumiMap[k]))];
+      const warnMsg = unmapped.length
+        ? `（${unmapped.length}組が設定タブで班未設定: ${unmapped.slice(0,3).join('、')}${unmapped.length>3?'…':''}）`
+        : '';
+      saveRoster();
+      saveKumiMap();
+      initAggData();
+      buildHanSelects();
+      rebuildFpHan();
+      renderRoster();
+      renderHCards();
+      renderHList();
+      renderKumiSelect();
+      renderEditKumiSelect();
+      showMsg('import-msg', added+'名追加（重複'+skipped+'件スキップ）'+warnMsg, 'ok');
+    }catch(err){
+      showMsg('import-msg','読み込みエラー：'+err.message,'err');
+    }
+    // inputをリセット（同じファイルを再度読み込めるよう）
+    input.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ===== ユーティリティ ===== */
+function flash(id,text){const el=document.getElementById(id);if(el){el.textContent=text;setTimeout(()=>el.textContent='',2500);}}
+function showMsg(id,text,type){const el=document.getElementById(id);if(el){el.className=type==='ok'?'ok':'err';el.textContent=text;setTimeout(()=>el.textContent='',3000);}}
+function saveItems(){try{localStorage.setItem('custom_items',JSON.stringify(items.filter(x=>x.id.startsWith('custom_'))));}catch(e){}}
+
+/* ===== データ管理（リセット） ===== */
+function resetRoster(){
+  if(!confirm('名簿を全削除します。\n集計対象の設定もすべて消えます。\nよろしいですか？')) return;
+  roster=[];
+  saveRoster();
+  initAggData();
+  buildHanSelects();
+  rebuildFpHan();
+  renderRoster();
+  renderHCards();renderHList();
+  renderAggTable();renderAggSummary();
+  showMsg('reset-msg','名簿を削除しました','ok');
+}
+
+function resetAggData(){
+  if(!confirm('集計データ（掴み・結果・確定・履歴）をリセットします。\n名簿と組設定は残ります。\nよろしいですか？')) return;
+  aggData={};
+  aggHistory=[];
+  itemModes={};
+  try{localStorage.setItem('agg_data','{}');}catch(e){}
+  try{localStorage.setItem('agg_hist','[]');}catch(e){}
+  try{localStorage.setItem('item_modes','{}');}catch(e){}
+  gasSave('aggData',{});
+  gasSave('aggHistory',[]);
+  gasSave('itemModes',{});
+  initAggData();
+  renderItemChecks();
+  renderAggTable();renderAggSummary();
+  showMsg('reset-msg','集計データをリセットしました','ok');
+}
+
+function resetAllData(){
+  if(!confirm('【警告】名簿・集計・折伏成果・折伏予定・組設定を含む\nすべてのデータを初期化します。\n本当によろしいですか？')) return;
+  if(!confirm('最終確認：この操作は取り消せません。実行しますか？')) return;
+  roster=[]; aggData={}; aggHistory={}; hHist=[]; hPeriod={start:'',end:''};
+  fukubokuPlans=[]; kumiMap={}; itemModes={};
+  const keys=['roster','agg_data','agg_hist','h_hist','h_period','fukuboku_plans','kumi_map','item_modes','custom_items'];
+  keys.forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});
+  ['roster','aggData','aggHistory','hHist','hPeriod','fukubokuPlans','kumiMap','itemModes'].forEach(k=>gasSave(k, k.includes('Map')||k==='aggData'||k==='itemModes'?{}:[]));
+  initAggData();
+  buildHanSelects();rebuildFpHan();
+  renderItemChecks();renderAggTable();renderAggSummary();
+  renderHCards();renderHList();
+  renderRoster();
+  renderKumiSelect();renderEditKumiSelect();
+  renderKumiTable();
+  showMsg('reset-msg','すべてのデータを初期化しました','ok');
+}
+let fukubokuPlans = [];
+
+function fpUpdateMembers(){
+  const hanName = document.getElementById('fp-han').value;
+  const sel = document.getElementById('fp-member');
+  if(!hanName){ sel.innerHTML='<option value="">― 選択 ―</option>'; return; }
+  const han = getAggHan().find(h=>h.name===hanName);
+  sel.innerHTML = '<option value="">― 選択 ―</option>' + (han?han.members.map(m=>`<option value="${m}">${m}</option>`).join(''):'');
+}
+
+function addFukubokuPlan(){
+  const date = document.getElementById('fp-date').value;
+  const time = document.getElementById('fp-time').value;
+  const han  = document.getElementById('fp-han').value;
+  const member = document.getElementById('fp-member').value;
+  if(!date||!han||!member){ flash('fp-msg','日にち・班・班員を入力してください'); return; }
+  const plan = { id:Date.now(), date, time, han, member, memo: document.getElementById('fp-memo').value.trim() };
+  fukubokuPlans.push(plan);
+  fukubokuPlans.sort((a,b)=>a.date>b.date?1:a.date<b.date?-1:(a.time>b.time?1:-1));
+  saveFukubokuPlans();
+  flash('fp-msg','追加しました');
+  document.getElementById('fp-memo').value='';
+  renderFukubokuList();
+}
+
+function deleteFukubokuPlan(id){
+  fukubokuPlans = fukubokuPlans.filter(p=>p.id!==id);
+  saveFukubokuPlans();
+  renderFukubokuList();
+}
+
+function saveFukubokuPlans(){
+  try{ localStorage.setItem('fukuboku_plans', JSON.stringify(fukubokuPlans)); }catch(e){}
+  gasSave('fukubokuPlans', fukubokuPlans);
+}
+
+function renderFukubokuList(){
+  const el = document.getElementById('fp-list'); if(!el) return;
+  if(!fukubokuPlans.length){
+    el.innerHTML='<div style="font-size:13px;color:#888;padding:10px 14px">予定はありません</div>';
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  el.innerHTML = fukubokuPlans.map(p=>{
+    const past = p.date < today;
+    const dateDisp = p.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$2月$3日');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #eee;flex-wrap:wrap;${past?'color:#bbb;background:#fafafa':''}">
+      <span style="font-size:13px;min-width:70px">${dateDisp}${p.time?' '+p.time+'〜':''}</span>
+      <span style="font-size:13px;min-width:60px">${p.member}</span>
+      ${p.memo?`<span style="font-size:12px;color:${past?'#bbb':'#888'}">${p.memo}</span>`:''}
+      <button class="btn btn-w" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="deleteFukubokuPlan(${p.id})">削除</button>
+    </div>`;
+  }).join('');
+}
+
+/* ===== メール生成 ===== */
+
+// 氏名から表示用の短縮名を生成（名字。同姓が同じ班にいる場合は名の一文字を追加）
+function shortName(name, hanMembers){
+  const family = name.split(/[\s　]/)[0];
+  // 同じ班で同じ名字が複数いるか
+  const sameFamily = hanMembers.filter(m => m.split(/[\s　]/)[0] === family);
+  if(sameFamily.length <= 1) return family;
+  // 名の一文字を追加（スペース以降の最初の文字、なければ全名の名字以降の最初の文字）
+  const rest = name.slice(family.length).trim();
+  const given1 = rest ? rest[0] : (name.length > family.length ? name[family.length] : '');
+  return family + (given1 || '');
+}
+
+function generateMail(){
+  let num = 1;
+  const lines = [];
+
+  // 1. 折伏成果（折伏成果タブの期間合計）
+  const hossenTotal = getHTotal();
+  lines.push(num++ + '.折伏成果' + hossenTotal + '名');
+
+  // 2以降：集計タブでアクティブな項目を順に出力
+  const selItems = activeItemIds.map(id => items.find(x => x.id === id)).filter(Boolean);
+
+  for(let i = 0; i < selItems.length; i++){
+    const item = selItems[i];
+    const imode = getItemMode(item.id);
+    const isGrab = (imode === 'grab');
+
+    if(item.type === 'confirm'){
+      const count = getAggAllMembers().filter(m => !!aggData[memberKey(m.han,m.name)][item.id]?.result).length;
+      lines.push(num++ + '.' + item.label + '　' + count + '名');
+      const aggHan0=getAggHan();
+      for(let hi = 0; hi < aggHan0.length; hi++){
+        const h = aggHan0[hi];
+        const checked = h.members.filter(m => !!aggData[memberKey(h.name,m)][item.id]?.result);
+        lines.push(checked.length > 0
+          ? checked.map(m => shortName(m, h.members)).join('、')
+          : '');
+      }
+
+    } else if(isGrab){
+      const count = getAggAllMembers().filter(m => {
+        const g = aggData[memberKey(m.han,m.name)][item.id]?.grab;
+        return g === 'A' || g === 'B' || g === 'C';
+      }).length;
+      lines.push(num++ + '.' + item.label + '掴み　' + count + '名');
+      const aggHan1=getAggHan();
+      for(let hi = 0; hi < aggHan1.length; hi++){
+        const h = aggHan1[hi];
+        const abcMembers = h.members.filter(m => {
+          const g = aggData[memberKey(h.name,m)][item.id]?.grab;
+          return g === 'A' || g === 'B' || g === 'C';
+        });
+        lines.push(abcMembers.length > 0
+          ? abcMembers.map(m => {
+              const g = aggData[memberKey(h.name,m)][item.id]?.grab;
+              return g + shortName(m, h.members);
+            }).join('、')
+          : '');
+      }
+
+    } else {
+      let count = 0;
+      const aggHan2=getAggHan();
+      if(item.type === 'kikanshi'){
+        count = getAggAllMembers().reduce((s,m) => s + (parseInt(aggData[memberKey(m.han,m.name)][item.id]?.result)||0), 0);
+        lines.push(num++ + '.' + item.label + '結果　' + count + '部');
+        for(let hi = 0; hi < aggHan2.length; hi++){
+          const h = aggHan2[hi];
+          const checked = h.members.filter(m => (aggData[memberKey(h.name,m)][item.id]?.result||0) > 0);
+          lines.push(checked.length > 0 ? checked.map(m => shortName(m, h.members)).join('、') : '');
+        }
+      } else if(item.type === 'kuyou'){
+        count = getAggAllMembers().filter(m => (aggData[memberKey(m.han,m.name)][item.id]?.result||0) > 0).length;
+        const amt = getAggAllMembers().reduce((s,m) => s + (parseFloat(aggData[memberKey(m.han,m.name)][item.id]?.result)||0), 0);
+        lines.push(num++ + '.' + item.label + '結果　' + count + '名 / ' + amt.toFixed(1) + '万円');
+        for(let hi = 0; hi < aggHan2.length; hi++){
+          const h = aggHan2[hi];
+          const checked = h.members.filter(m => (aggData[memberKey(h.name,m)][item.id]?.result||0) > 0);
+          lines.push(checked.length > 0 ? checked.map(m => shortName(m, h.members)).join('、') : '');
+        }
+      } else {
+        count = getAggAllMembers().filter(m => !!aggData[memberKey(m.han,m.name)][item.id]?.result).length;
+        lines.push(num++ + '.' + item.label + '結果　' + count + '名');
+        for(let hi = 0; hi < aggHan2.length; hi++){
+          const h = aggHan2[hi];
+          const checked = h.members.filter(m => !!aggData[memberKey(h.name,m)][item.id]?.result);
+          lines.push(checked.length > 0 ? checked.map(m => shortName(m, h.members)).join('、') : '');
+        }
+      }
+    }
+  }
+
+  // 最後：段取り（今日〜翌週月曜日）
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const nextMon = new Date(now);
+  const dow = now.getDay();
+  const daysUntilMon = dow === 1 ? 7 : (8 - dow) % 7;
+  nextMon.setDate(now.getDate() + daysUntilMon);
+  const nextMonStr = nextMon.toISOString().slice(0,10);
+  const plans = fukubokuPlans.filter(p => p.date >= todayStr && p.date <= nextMonStr);
+  lines.push(num++ + '.段取り　' + plans.length + '件');
+  plans.forEach(p => {
+    const dateDisp = p.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$2月$3日');
+    lines.push(dateDisp + '、' + (p.time ? p.time + '〜、' : '') + p.member + (p.memo ? '、' + p.memo : ''));
+  });
+
+  const text = lines.join('\n');
+  document.getElementById('ml-text').value = text;
+
+  // プレビュー描画（見出し行は太字・青、名前行は通常、空行はグレーの「―」）
+  const preview = document.getElementById('ml-preview');
+  preview.innerHTML = lines.map(line => {
+    if(/^\d+\./.test(line)){
+      // 番号付き見出し行
+      return '<span style="font-weight:600;color:#1a6bbf">' + line.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    } else if(line === ''){
+      return '<span style="color:#ddd;font-size:11px">（参加者なし）</span>';
+    } else {
+      return '<span>' + line.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>';
+    }
+  }).join('\n');
+
+  document.getElementById('ml-output').style.display = '';
+}
+
+function copyMail(){
+  const t = document.getElementById('ml-text');
+  t.select();
+  try{
+    document.execCommand('copy');
+    flash('ml-msg','コピーしました');
+  }catch(e){
+    navigator.clipboard?.writeText(t.value).then(()=>flash('ml-msg','コピーしました'));
+  }
+}
+
+/* ===== 起動 ===== */
+function init(){
+  const load=(key,def)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}};
+  aggHistory=load('agg_hist',[]);
+  roster=load('roster',[]);
+  hPeriod=load('h_period',{start:'',end:''});
+  hHist=load('h_hist',[]);
+  fukubokuPlans=load('fukuboku_plans',[]);
+  kumiMap=load('kumi_map',{});
+  hanList=load('han_list',[]);
+
+  // aggData初期化（rosterベース）
+  initAggData();
+
+  document.getElementById('agg-date').value=td;
+  document.getElementById('h-rdate') && (document.getElementById('h-rdate').value=td);
+  document.getElementById('r-nyushin') && (document.getElementById('r-nyushin').value=td);
+
+  // カスタム項目を復元
+  const customItems=load('custom_items',[]);
+  customItems.forEach(ci=>{
+    if(!items.find(x=>x.id===ci.id)){
+      items.push(ci);
+      getAggAllMembers().forEach(m=>{
+        const k=memberKey(m.han,m.name);
+        if(!aggData[k]) aggData[k]={};
+        if(!aggData[k][ci.id]) aggData[k][ci.id]={grab:'',result:ci.type==='grab_num'?0:false};
+      });
+    }
+  });
+
+  if(hPeriod.start){sv('h-start',hPeriod.start);sv('h-end',hPeriod.end);}
+  buildHanSelects();
+  renderItemChecks();
+  renderAggTable();
+  renderAggSummary();
+  renderHCards();renderHList();
+
+  // 全ての班プルダウンを初期化
+  rebuildAllHanSelects();
+  // 組プルダウン初期化
+  renderKumiSelect();
+  // 編集モーダルの組プルダウン初期化
+  renderEditKumiSelect();
+
+  // GAS URL表示と同期状態初期化
+  const gasInput = document.getElementById('gas-url-input');
+  if(gasInput) gasInput.value = GAS_URL;
+  updateSyncBadge(GAS_URL ? 'syncing' : 'local');
+  if(GAS_URL) gasLoad();
+
+  // ヘッダーボタンのイベント委譲（data属性方式）
+  document.addEventListener('click',function(e){ if(!e.target.closest('#agg-thead')) return;
+    const btn=e.target.closest('[data-action]');
+    if(!btn)return;
+    const action=btn.dataset.action;
+    const id=btn.dataset.id;
+    if(action==='finalize') finalizeItem(id);
+    else if(action==='mode') setItemMode(id,btn.dataset.val);
+  });
+}
+init();
+</script>
+</body>
+</html>
