@@ -346,12 +346,12 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
     <div id="cm-meta" style="font-size:12px;color:#888;margin-bottom:10px;"></div>
     <!-- クイック入力ボタン -->
     <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;" id="cm-quick-btns">
-      <button class="btn" style="font-size:11px;padding:3px 8px;" data-quick="電話出ない">電話出ない</button>
-      <button class="btn" style="font-size:11px;padding:3px 8px;" data-quick="連絡不可">連絡不可</button>
-      <button class="btn" style="font-size:11px;padding:3px 8px;" data-quick="所在不明">所在不明</button>
-      <button class="btn" style="font-size:11px;padding:3px 8px;" data-quick="電話番号使われていない">番号使用不可</button>
-      <button class="btn" style="font-size:11px;padding:3px 8px;" data-quick="住所変わっている">住所変更</button>
-      <button class="btn btn-w" style="font-size:11px;padding:3px 8px;" data-quick="死亡">死亡</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('電話出ない')">電話出ない</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('連絡不可')">連絡不可</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('所在不明')">所在不明</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('電話番号使われていない')">番号使用不可</button>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('住所変わっている')">住所変更</button>
+      <button class="btn btn-w" style="font-size:11px;padding:3px 8px;" onclick="insertQuickComment('死亡')">死亡</button>
     </div>
     <textarea id="cm-text" style="width:100%;min-height:100px;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px;resize:vertical;" placeholder="コメントを入力…"></textarea>
     <div style="font-size:11px;color:#aaa;margin:4px 0 10px;">最終更新：<span id="cm-updated">―</span></div>
@@ -1718,11 +1718,8 @@ function saveComment(){
   setTimeout(()=>document.getElementById('cm-msg').textContent='',2000);
 }
 
-// クイック入力ボタンのイベント委譲（data-quick属性）
-document.addEventListener('click', function(e){
-  const btn = e.target.closest('[data-quick]');
-  if(!btn || !btn.closest('#comment-modal')) return;
-  const label = btn.dataset.quick;
+// クイック入力関数
+function insertQuickComment(label){
   const today = new Date();
   const y = today.getFullYear();
   const mo = String(today.getMonth()+1).padStart(2,'0');
@@ -1732,7 +1729,7 @@ document.addEventListener('click', function(e){
   const cur = ta.value.trim();
   ta.value = cur ? stamp + '\n' + cur : stamp;
   ta.focus();
-});
+}
 let _editingId = null;
 
 function renderEditKumiSelect(){
