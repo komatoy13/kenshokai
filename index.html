@@ -755,17 +755,16 @@ async function gasLoad(){
 async function gasSaveAsync(gasKey, value){
   if(!GAS_URL) return;
   const str = JSON.stringify(value);
-  const CHUNK = 100000; // 100KB単位で分割
+  const CHUNK = 100000;
   if(str.length <= CHUNK){
-    // 小さいデータはそのまま送信
     const res = await fetch(GAS_URL, {
       method:'POST',
+      redirect:'follow',
       body: JSON.stringify({key:gasKey, value, chunk:0, total:1}),
       headers:{'Content-Type':'text/plain'}
     });
     return await res.json();
   }
-  // 大きいデータは分割送信
   const chunks = [];
   for(let i=0; i<str.length; i+=CHUNK){
     chunks.push(str.slice(i, i+CHUNK));
@@ -773,6 +772,7 @@ async function gasSaveAsync(gasKey, value){
   for(let i=0; i<chunks.length; i++){
     await fetch(GAS_URL, {
       method:'POST',
+      redirect:'follow',
       body: JSON.stringify({key:gasKey, chunk:i, total:chunks.length, data:chunks[i]}),
       headers:{'Content-Type':'text/plain'}
     });
