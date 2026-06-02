@@ -754,30 +754,13 @@ async function gasLoad(){
 // キーを指定してGASに保存（大きいデータは分割送信）
 async function gasSaveAsync(gasKey, value){
   if(!GAS_URL) return;
-  const str = JSON.stringify(value);
-  const CHUNK = 50000;
-  if(str.length <= CHUNK){
-    const res = await fetch(GAS_URL, {
-      method:'POST',
-      redirect:'follow',
-      body: JSON.stringify({key:gasKey, value, chunk:0, total:1}),
-      headers:{'Content-Type':'text/plain'}
-    });
-    return await res.json();
-  }
-  const chunks = [];
-  for(let i=0; i<str.length; i+=CHUNK){
-    chunks.push(str.slice(i, i+CHUNK));
-  }
-  for(let i=0; i<chunks.length; i++){
-    await fetch(GAS_URL, {
-      method:'POST',
-      redirect:'follow',
-      body: JSON.stringify({key:gasKey, chunk:i, total:chunks.length, data:chunks[i]}),
-      headers:{'Content-Type':'text/plain'}
-    });
-  }
-  return {ok:true};
+  const res = await fetch(GAS_URL, {
+    method:'POST',
+    redirect:'follow',
+    body: JSON.stringify({key:gasKey, value:value, chunk:0, total:1}),
+    headers:{'Content-Type':'text/plain'}
+  });
+  return await res.json();
 }
 
 function gasSave(gasKey, value){
