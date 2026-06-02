@@ -755,7 +755,7 @@ async function gasLoad(){
 async function gasSaveAsync(gasKey, value){
   if(!GAS_URL) return;
   const str = JSON.stringify(value);
-  const CHUNK = 100000;
+  const CHUNK = 50000;
   if(str.length <= CHUNK){
     const res = await fetch(GAS_URL, {
       method:'POST',
