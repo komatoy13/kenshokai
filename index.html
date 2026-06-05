@@ -686,7 +686,7 @@ let kumiMap={}; // {組名: 班名}
 // ============================================================
 let GAS_URL = '';
 try { GAS_URL = localStorage.getItem('gas_url') || ''; } catch(e){}
-let _syncTimer = null;
+
 
 function setGasUrl(url){
   GAS_URL = url.trim();
@@ -754,22 +754,30 @@ async function gasLoad(){
 // キーを指定してGASに保存（大きいデータは分割送信）
 async function gasSaveAsync(gasKey, value){
   if(!GAS_URL) return;
+  const str = JSON.stringify(value);
+  const CHUNK = 40000; // セルの50000文字制限より小さく
+  const chunks = [];
+  for(let i = 0; i < str.length; i += CHUNK){
+    chunks.push(str.slice(i, i + CHUNK));
+  }
   const res = await fetch(GAS_URL, {
     method:'POST',
     redirect:'follow',
-    body: JSON.stringify({key:gasKey, value:value, chunk:0, total:1}),
+    body: JSON.stringify({key:gasKey, chunks:chunks}),
     headers:{'Content-Type':'text/plain'}
   });
   return await res.json();
 }
 
+const _syncTimers = {};
 function gasSave(gasKey, value){
   if(!GAS_URL) return;
-  clearTimeout(_syncTimer);
+  const snapshot = JSON.parse(JSON.stringify(value)); // 値をスナップショット
+  clearTimeout(_syncTimers[gasKey]);
   updateSyncBadge('syncing');
-  _syncTimer = setTimeout(async ()=>{
+  _syncTimers[gasKey] = setTimeout(async ()=>{
     try {
-      await gasSaveAsync(gasKey, value);
+      await gasSaveAsync(gasKey, snapshot);
       updateSyncBadge('synced');
     } catch(err) { updateSyncBadge('error', err.message); }
   }, 800);
