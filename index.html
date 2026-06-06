@@ -780,7 +780,7 @@ function gasSave(gasKey, value){
       await gasSaveAsync(gasKey, snapshot);
       updateSyncBadge('synced');
     } catch(err) { updateSyncBadge('error', err.message); }
-  }, 800);
+  }, 3000);
 }
 
 /* ===== 初期化 ===== */
