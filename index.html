@@ -1806,14 +1806,14 @@ function saveEditMbr(){
     aggData[newKey]=aggData[oldKey];
     delete aggData[oldKey];
   }
-  saveRoster();
+  closeEditModal();
   buildHanSelects();
   rebuildFpHan();
   renderAggTable();
   renderAggSummary();
   renderHCards();renderHList();
   renderRoster();
-  closeEditModal();
+  saveRoster();
 }
 
 function deleteEditMbr(){
