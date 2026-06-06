@@ -487,7 +487,9 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
   <div id="kumi-table-wrap" style="padding:0 14px 10px;"></div>
   <div class="row">
     <div class="lbl">組名を追加</div>
-    <input class="w120" id="cfg-kumi-name" placeholder="例：山北組">
+    <select id="cfg-kumi-name" style="font-size:13px;padding:4px 6px;">
+      <option value="">― 組を選択 ―</option>
+    </select>
     <select id="cfg-kumi-han">
       <option value="">班を選択</option>
     </select>
@@ -813,7 +815,7 @@ function sw(i){
   if(i===3)renderRoster();
   if(i===4)renderFukubokuList();
   if(i===5)generateMail();
-  if(i===6){ renderKumiTable(); renderHanTable(); renderHanchoBtnList(); }
+  if(i===6){ renderKumiTable(); renderHanTable(); renderHanchoBtnList(); renderKumiNameSelect(); }
 }
 
 /* ===== 集計タブ ===== */
@@ -1386,44 +1388,80 @@ function saveKumiMap(){
 
 // ⑤ 設定タブ：組管理テーブル
 function renderKumiTable(){
-  const wrap=document.getElementById('kumi-table-wrap');
-  const names=Object.keys(kumiMap).sort();
-  if(!names.length){wrap.innerHTML='<div style="font-size:13px;color:#888;padding:8px 0">まだ登録されていません</div>';return;}
-  let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:1px solid #ddd"><th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">組名</th><th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">所属班</th><th style="width:60px"></th></tr></thead><tbody>';
-  names.forEach(kumi=>{
-    h+='<tr style="border-bottom:1px solid #eee">'
-      +'<td style="padding:5px 4px">'+kumi+'</td>'
-      +'<td style="padding:5px 4px"><select onchange="changeKumiHan(\''+kumi+'\',this.value)" style="font-size:12px;padding:3px 6px">'
-      +'<option value="">― 選択 ―</option>'
-      +HAN.map(h2=>'<option value="'+h2.name+'"'+(kumiMap[kumi]===h2.name?' selected':'')+'>'+h2.name+'班</option>').join('')
-      +'</select></td>'
-      +'<td style="padding:5px 4px;text-align:center"><button class="btn btn-w" style="font-size:11px;padding:2px 8px" onclick="deleteKumi(\''+kumi+'\')">削除</button></td>'
-      +'</tr>';
-  });
-  wrap.innerHTML=h+'</tbody></table>';
+  const wrap = document.getElementById('kumi-table-wrap');
+  const names = Object.keys(kumiMap).sort();
+  if(!names.length){
+    wrap.innerHTML = '<div style="font-size:13px;color:#888;padding:8px 0">まだ登録されていません</div>';
+    return;
+  }
+  let h = '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<thead><tr style="border-bottom:1px solid #ddd">'
+    + '<th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">組名</th>'
+    + '<th style="text-align:left;padding:5px 4px;color:#888;font-weight:400">所属班</th>'
+    + '<th style="width:60px"></th>'
+    + '</tr></thead><tbody>';
+  for(let i = 0; i < names.length; i++){
+    const kumi = names[i];
+    let opts = '<option value="">― 選択 ―</option>';
+    for(let j = 0; j < hanList.length; j++){
+      const hname = hanList[j].name;
+      const sel = kumiMap[kumi] === hname ? ' selected' : '';
+      opts += '<option value="' + hname + '"' + sel + '>' + hname + '班</option>';
+    }
+    h += '<tr style="border-bottom:1px solid #eee">'
+      + '<td style="padding:5px 4px">' + kumi + '</td>'
+      + '<td style="padding:5px 4px"><select class="kumi-han-sel" data-kumi="' + kumi + '" style="font-size:12px;padding:3px 6px">' + opts + '</select></td>'
+      + '<td style="padding:5px 4px;text-align:center"><button class="btn btn-w" style="font-size:11px;padding:2px 8px" data-del-kumi="' + kumi + '">削除</button></td>'
+      + '</tr>';
+  }
+  wrap.innerHTML = h + '</tbody></table>';
 }
 
-function changeKumiHan(kumi,han){
-  kumiMap[kumi]=han;
+// 組テーブルのイベント委譲
+document.addEventListener('change', function(e){
+  const sel = e.target.closest('.kumi-han-sel');
+  if(!sel) return;
+  kumiMap[sel.dataset.kumi] = sel.value;
   saveKumiMap();
   renderKumiSelect();
-}
-function deleteKumi(kumi){
-  delete kumiMap[kumi];
+});
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('[data-del-kumi]');
+  if(!btn) return;
+  delete kumiMap[btn.dataset.delKumi];
   saveKumiMap();
   renderKumiTable();
   renderKumiSelect();
-}
+});
 function addKumiMapping(){
-  const name=document.getElementById('cfg-kumi-name').value.trim();
-  const han=document.getElementById('cfg-kumi-han').value;
-  if(!name){flash('cfg-msg','組名を入力してください');return;}
-  kumiMap[name]=han;
+  const name = document.getElementById('cfg-kumi-name').value;
+  const han = document.getElementById('cfg-kumi-han').value;
+  if(!name){ flash('cfg-msg','組名を選択してください'); return; }
+  kumiMap[name] = han;
   saveKumiMap();
-  document.getElementById('cfg-kumi-name').value='';
+  document.getElementById('cfg-kumi-name').value = '';
   renderKumiTable();
   renderKumiSelect();
+  renderKumiNameSelect();
   flash('cfg-msg','追加しました');
+}
+
+// 名簿から組名一覧を取得してドロップダウンを更新
+function renderKumiNameSelect(){
+  const sel = document.getElementById('cfg-kumi-name');
+  if(!sel) return;
+  // 名簿から組名を収集（重複排除・50音順）
+  const kumiSet = {};
+  for(let i = 0; i < roster.length; i++){
+    const k = (roster[i].kumi || '').trim();
+    if(k) kumiSet[k] = true;
+  }
+  const kumiNames = Object.keys(kumiSet).sort();
+  let html = '<option value="">― 組を選択 ―</option>';
+  for(let i = 0; i < kumiNames.length; i++){
+    html += '<option value="' + kumiNames[i] + '">' + kumiNames[i] + '</option>';
+  }
+  sel.innerHTML = html;
 }
 
 function toggleMinyushin(){
@@ -1945,6 +1983,7 @@ function importXlsx(input){
       renderHList();
       renderKumiSelect();
       renderEditKumiSelect();
+      renderKumiNameSelect();
       showMsg('import-msg', added+'名追加（重複'+skipped+'件スキップ）'+warnMsg, 'ok');
     }catch(err){
       showMsg('import-msg','読み込みエラー：'+err.message,'err');
@@ -2094,6 +2133,7 @@ function importBackup(input){
       renderHCards(); renderHList(); renderRoster();
       renderKumiSelect(); renderEditKumiSelect();
       renderKumiTable(); renderHanTable();
+      renderKumiNameSelect();
       showMsg('backup-msg', '復元しました', 'ok');
     }catch(err){
       showMsg('backup-msg', '復元エラー：' + err.message, 'err');
@@ -2674,6 +2714,8 @@ function init(){
   initHanchoMode();
   // 設定タブ班長URL描画
   renderHanchoBtnList();
+  // 組名ドロップダウン初期化
+  renderKumiNameSelect();
 }
 init();
 </script>
