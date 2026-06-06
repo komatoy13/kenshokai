@@ -772,11 +772,11 @@ async function gasSaveAsync(gasKey, value){
 const _syncTimers = {};
 function gasSave(gasKey, value){
   if(!GAS_URL) return;
-  const snapshot = JSON.parse(JSON.stringify(value)); // 値をスナップショット
   clearTimeout(_syncTimers[gasKey]);
   updateSyncBadge('syncing');
   _syncTimers[gasKey] = setTimeout(async ()=>{
     try {
+      const snapshot = JSON.parse(JSON.stringify(value)); // タイマー内でスナップショット
       await gasSaveAsync(gasKey, snapshot);
       updateSyncBadge('synced');
     } catch(err) { updateSyncBadge('error', err.message); }
