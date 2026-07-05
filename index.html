@@ -1921,6 +1921,19 @@ function importXlsx(input){
         }
         return '';
       }
+      // 電話番号専用：数値型でも文字列型でも正しく処理
+      function toTelStr(v){
+        if(v===undefined || v===null || v==='') return '';
+        // ハイフン・スペース・全角ハイフン等を除去した文字列に変換
+        let s = String(v).replace(/[-ー－\s　]/g,'').trim();
+        if(!s) return '';
+        // 数値として読み込まれて先頭の0が消えている場合に補完
+        // 日本の固定・携帯は10桁または11桁。9桁以下なら先頭に0を補完
+        if(/^\d+$/.test(s) && s.length <= 10){
+          s = '0' + s;
+        }
+        return s;
+      }
       // 日付型セルを YYYY-MM-DD 文字列に変換
       function toDateStr(v){
         if(!v) return '';
@@ -1955,8 +1968,8 @@ function importXlsx(input){
           pref:  col(row,'都道府県','pref'),
           city:  col(row,'市区町村','city'),
           addr:  col(row,'住所','addr'),
-          tel:   col(row,'電話番号①','電話番号','tel').replace(/[-ー－\s]/g,''),
-          tel2:  col(row,'電話番号②','tel2').replace(/[-ー－\s]/g,''),
+          tel:   toTelStr(row['電話番号①'] ?? row['電話番号'] ?? row['tel'] ?? ''),
+          tel2:  toTelStr(row['電話番号②'] ?? row['tel2'] ?? ''),
           birth: toDateStr(col(row,'生年月日','birth')),
           kumi:  kumiVal,
           han:   hanVal,
