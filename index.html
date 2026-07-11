@@ -1947,21 +1947,19 @@ function importXlsx(input){
         return s;
       }
 
-      let added = 0, skipped = 0;
-      rows.forEach(row => {
+      let added = 0, updated = 0, skipped = 0;
+      for(let ri = 0; ri < rows.length; ri++){
+        const row = rows[ri];
         const sei = col(row,'姓','sei');
         const mei = col(row,'名','mei');
-        if(!sei){ skipped++; return; }
+        if(!sei){ skipped++; continue; }
         const nyushin = toDateStr(col(row,'入信日','nyushin'));
         const miny = col(row,'未入信','minyushin')==='○' || col(row,'未入信')===true;
-        const dup = roster.find(m => m.sei===sei && m.mei===mei && (m.nyushin===nyushin||(!m.nyushin&&!nyushin)));
-        if(dup){ skipped++; return; }
-        // 所属組を取得（「所属組」列または「班」列を組として扱う）
+        // 所属組を取得
         const kumiVal = col(row,'所属組','kumi') || col(row,'班','han');
-        // 班はkumiMapから自動決定（班列は使わない）
         const hanVal = kumiVal ? (kumiMap[kumiVal] || '') : '';
-        roster.push({
-          id: Date.now() + added,
+        // 更新データを組み立て
+        const newData = {
           sei, mei,
           seiK:  col(row,'読み（姓）','seiK','姓読み'),
           meiK:  col(row,'読み（名）','meiK','名読み'),
@@ -1978,14 +1976,38 @@ function importXlsx(input){
           biko:  col(row,'備考','biko'),
           hossen: false,
           minyushin: miny,
-          aggTarget: col(row,'集計対象')==='○',
-        });
-        added++;
-      });
-      // kumiMapに未登録の組があれば設定タブで設定するよう促す
-      const unmapped = [...new Set(roster.map(m=>m.kumi).filter(k=>k&&!kumiMap[k]))];
+        };
+        // 既存メンバーを姓＋名で検索
+        const idx = roster.findIndex(function(m){ return m.sei===sei && m.mei===(mei||''); });
+        if(idx >= 0){
+          // 既存メンバーを上書き（comment・aggTarget・commentUpdatedはアプリ側を保持）
+          const old = roster[idx];
+          roster[idx] = Object.assign({}, newData, {
+            id:             old.id,
+            comment:        old.comment        || '',
+            commentUpdated: old.commentUpdated || '',
+            aggTarget:      old.aggTarget      || false,
+          });
+          updated++;
+        } else {
+          // 新規追加
+          roster.push(Object.assign({}, newData, {
+            id: Date.now() + added,
+            comment: '',
+            commentUpdated: '',
+            aggTarget: col(row,'集計対象')==='○',
+          }));
+          added++;
+        }
+      }
+      const unmapped = [];
+      const kumiSet2 = {};
+      for(let i = 0; i < roster.length; i++){
+        const k = roster[i].kumi;
+        if(k && !kumiMap[k] && !kumiSet2[k]){ unmapped.push(k); kumiSet2[k]=true; }
+      }
       const warnMsg = unmapped.length
-        ? `（${unmapped.length}組が設定タブで班未設定: ${unmapped.slice(0,3).join('、')}${unmapped.length>3?'…':''}）`
+        ? '（' + unmapped.length + '組が設定タブで班未設定: ' + unmapped.slice(0,3).join('、') + (unmapped.length>3?'…':'') + '）'
         : '';
       saveRoster();
       saveKumiMap();
@@ -1998,7 +2020,7 @@ function importXlsx(input){
       renderKumiSelect();
       renderEditKumiSelect();
       renderKumiNameSelect();
-      showMsg('import-msg', added+'名追加（重複'+skipped+'件スキップ）'+warnMsg, 'ok');
+      showMsg('import-msg', '追加:'+added+'名 / 更新:'+updated+'名 / スキップ:'+skipped+'件'+warnMsg, 'ok');
     }catch(err){
       showMsg('import-msg','読み込みエラー：'+err.message,'err');
     }
