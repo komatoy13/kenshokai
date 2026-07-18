@@ -475,11 +475,30 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
     <button class="btn btn-p" onclick="addHan()">追加</button>
     <span class="ok" id="cfg-han-msg"></span>
   </div>
-  <div class="sec-hd">📱 班長用URL生成</div>
+  <div class="sec-hd">📱 班長・副長用URL生成</div>
   <div class="row" style="font-size:12px;color:#888;padding:0 14px 6px;">
-    班長がスマホから入力できるURLを生成します。LINEで班長に送ってください。
+    班長・副長がスマホから入力できるURLを生成します。LINEで送ってください。
   </div>
   <div id="hancho-url-wrap" style="padding:0 14px 10px;"></div>
+  <div class="sec-hd">🔗 副長URL生成（複数班を担当）</div>
+  <div class="row" style="font-size:12px;color:#888;padding:0 14px 6px;">
+    副長のメイン班を選択し、兼任する班をチェックしてURLを生成します。
+  </div>
+  <div style="padding:0 14px 10px;" id="fukucho-url-wrap">
+    <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center;">
+      <div class="lbl">メイン班</div>
+      <select id="fukucho-main-han" style="font-size:13px;padding:4px 6px;"></select>
+    </div>
+    <div class="row" style="flex-wrap:wrap;gap:4px;align-items:center;margin-top:4px;">
+      <div class="lbl">兼任する班</div>
+      <div id="fukucho-sub-hans" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-p" onclick="generateFukuchoUrl()">副長URL生成</button>
+      <span id="fukucho-url-result" style="font-size:11px;color:#aaa;word-break:break-all;max-width:300px;"></span>
+      <button class="btn" id="fukucho-url-copy-btn" style="display:none;font-size:11px;padding:3px 10px;" onclick="copyFukuchoUrl()">コピー</button>
+    </div>
+  </div>
   <div class="sec-hd">組と班の対応管理</div>
   <div class="row" style="font-size:12px;color:#888;padding:8px 14px;">
     各組がどの班に所属するかを設定します。Excelから名簿を読み込むと自動的に追加されます。
@@ -802,9 +821,19 @@ function initAggData(){
 
 // 班ドロップダウンを生成（roster動的）
 function buildHanSelects(){
-  const aggHan = getAggHan();
-  const opts = '<option value="__all__">全班まとめ</option>'
-    + aggHan.map(h=>'<option value="'+h.name+'">'+h.name+'班</option>').join('');
+  let aggHan = getAggHan();
+  // 班長・副長は自分の許可班のみ表示
+  if(isRestricted()){
+    aggHan = aggHan.filter(function(h){ return ROLE.hans.indexOf(h.name) >= 0; });
+  }
+  let opts = '';
+  // 総長・副長のみ「全班まとめ」を表示
+  if(isSocho() || isFukucho()){
+    opts += '<option value="__all__">全班まとめ</option>';
+  }
+  for(let i = 0; i < aggHan.length; i++){
+    opts += '<option value="' + aggHan[i].name + '">' + aggHan[i].name + '班</option>';
+  }
   document.getElementById('agg-han').innerHTML = opts;
 }
 
@@ -1573,6 +1602,11 @@ function renderRoster(){
   let filtered = q
     ? roster.filter(function(m){ return (m.sei+(m.mei||'')+(m.seiK||'')+(m.meiK||'')+(m.kumi||'')+(m.han||'')+(m.pref||'')+(m.city||'')+(m.addr||'')+(m.tel||'')+(m.tel2||'')+(m.comment||'')).toLowerCase().indexOf(q) >= 0; })
     : roster.slice();
+
+  // 権限フィルタ（班長・副長は自分の班のみ）
+  if(isRestricted()){
+    filtered = filtered.filter(function(m){ return canViewMember(m); });
+  }
 
   // 絞り込みフィルタ
   filtered = applyRosterFilter(filtered, filterMode);
@@ -2380,37 +2414,68 @@ let _hanchoMode = 'grab';      // 'grab' | 'result'
 let _hanchoActiveItems = [];   // 選択中の項目ID
 let _hanchoData = {};          // {memberKey: {itemId: {grab:'', result:false}}}
 
-function initHanchoMode(){
+/* ===== 権限管理 ===== */
+// role: 'socho'（総長）| 'hancho'（班長）| 'fukucho'（副長）
+const ROLE = (function(){
   const params = new URLSearchParams(window.location.search);
-  if(params.get('mode') !== 'hancho') return;
-  _hanchoHan = decodeURIComponent(params.get('han') || '');
-  if(!_hanchoHan) return;
+  const mode = params.get('mode') || '';
+  const han  = decodeURIComponent(params.get('han') || '');
+  const sub  = (params.get('sub') || '').split(',').map(function(s){ return decodeURIComponent(s.trim()); }).filter(Boolean);
+  if(mode === 'hancho' && han) return {role:'hancho',  han:han, hans:[han]};
+  if(mode === 'fukucho'&& han) return {role:'fukucho', han:han, hans:[han].concat(sub)};
+  return {role:'socho', han:'', hans:[]};
+})();
 
-  // タブを非表示にして班長画面を表示
-  document.querySelector('.tabs').style.display = 'none';
-  document.querySelectorAll('.page').forEach(function(p){ p.style.display = 'none'; });
-  const hp = document.getElementById('hancho-page');
-  hp.classList.add('active');
-  document.getElementById('hancho-title').textContent = _hanchoHan + '班 報告入力画面';
+function isSocho(){   return ROLE.role === 'socho'; }
+function isHancho(){  return ROLE.role === 'hancho'; }
+function isFukucho(){ return ROLE.role === 'fukucho'; }
+function isRestricted(){ return !isSocho(); }
 
-  // ローカルストレージから班員データ（rosterは共有されない前提なので
-  // sessionStorageに保存されたデータがあれば使う。なければ空）
-  // 項目を初期設定
-  _hanchoActiveItems = ['sunday'];
-  renderHanchoItemChecks();
+// 自分が閲覧可能な班のメンバーか判定
+function canViewMember(m){
+  if(isSocho()) return true;
+  return ROLE.hans.indexOf(m.han || '') >= 0;
+}
 
-  // モードボタンのイベント委譲
-  document.getElementById('hancho-grab-btn').classList.add('active');
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest('[data-mode]');
-    if(!btn || !btn.closest('#hancho-page')) return;
-    _hanchoMode = btn.dataset.mode;
-    document.getElementById('hancho-grab-btn').classList.toggle('active', _hanchoMode === 'grab');
-    document.getElementById('hancho-result-btn').classList.toggle('active', _hanchoMode === 'result');
-    renderHanchoTable();
-  });
+function initHanchoMode(){
+  if(isSocho()) return; // 総長はそのまま
 
-  renderHanchoTable();
+  const han = ROLE.han;
+  _hanchoHan = han;
+
+  if(isHancho() || isFukucho()){
+    // タブを制限（設定タブを非表示）
+    const tabEl = document.getElementById('tb6');
+    if(tabEl) tabEl.style.display = 'none';
+    // 折伏予定・メールタブも非表示
+    const tb4 = document.getElementById('tb4'); if(tb4) tb4.style.display = 'none';
+    const tb5 = document.getElementById('tb5'); if(tb5) tb5.style.display = 'none';
+
+    // ヘッダーに役職表示を追加
+    const roleLabel = isHancho() ? han + '班長' : han + '班 副長';
+    const badge = document.createElement('div');
+    badge.style.cssText = 'background:#1a6bbf;color:#fff;font-size:12px;padding:3px 10px;text-align:right;';
+    badge.textContent = '🔑 ' + roleLabel + ' モード';
+    document.body.insertBefore(badge, document.body.firstChild);
+
+    // 班長専用入力画面（旧hanchoページ）は使わず通常タブで動かす
+    // 集計タブのハン選択を制限
+    _hanchoActiveItems = ['sunday'];
+  }
+
+  // 集計タブの班プルダウンを制限（renderAggTable内で参照）
+  // 名簿タブの管理ボタンを非表示
+  const adminBtns = document.querySelectorAll('#pg3 .btn-p, #pg3 .btn-s, #pg3 .btn-w');
+  for(let i = 0; i < adminBtns.length; i++){
+    const btn = adminBtns[i];
+    const txt = btn.textContent || '';
+    if(txt.indexOf('Excel') >= 0 || txt.indexOf('読み込み') >= 0 || txt.indexOf('削除') >= 0){
+      btn.style.display = 'none';
+    }
+  }
+  // Excelインポートの入力も非表示
+  const xlsxImportLabel = document.querySelector('label[for="xlsx-import"], #xlsx-import');
+  if(xlsxImportLabel) xlsxImportLabel.style.display = 'none';
 }
 
 function getHanchoMembers(){
@@ -2595,12 +2660,14 @@ function copyHanchoData(){
   lineLink.style.display = '';
 }
 
-/* ===== 班長URL生成（設定タブ） ===== */
+/* ===== 班長・副長URL生成（設定タブ） ===== */
 function renderHanchoBtnList(){
   const wrap = document.getElementById('hancho-url-wrap');
   if(!wrap) return;
   if(!hanList.length){
     wrap.innerHTML = '<div style="font-size:13px;color:#888;padding:4px 0">班が登録されていません</div>';
+    // 副長セレクトもリセット
+    renderFukuchoHanSelects();
     return;
   }
   const base = location.href.split('?')[0];
@@ -2610,12 +2677,66 @@ function renderHanchoBtnList(){
     const url = base + '?mode=hancho&han=' + encodeURIComponent(hname);
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
       + '<span style="font-size:13px;min-width:100px">' + hname + '班</span>'
-      + '<button class="btn btn-p" style="font-size:11px;padding:3px 10px" data-hancho-url="' + url + '">URLコピー</button>'
+      + '<button class="btn btn-p" style="font-size:11px;padding:3px 10px" data-hancho-url="' + url + '">班長URLコピー</button>'
       + '<span style="font-size:11px;color:#aaa;word-break:break-all;max-width:260px">' + url + '</span>'
       + '</div>';
   }
   html += '</div>';
   wrap.innerHTML = html;
+  renderFukuchoHanSelects();
+}
+
+function renderFukuchoHanSelects(){
+  const mainSel = document.getElementById('fukucho-main-han');
+  const subWrap = document.getElementById('fukucho-sub-hans');
+  if(!mainSel || !subWrap) return;
+  let mainHtml = '<option value="">― 選択 ―</option>';
+  let subHtml = '';
+  for(let i = 0; i < hanList.length; i++){
+    const hname = hanList[i].name;
+    mainHtml += '<option value="' + hname + '">' + hname + '班</option>';
+    subHtml += '<label style="display:inline-flex;align-items:center;gap:3px;font-size:12px;">'
+      + '<input type="checkbox" data-fukucho-sub="' + hname + '" style="width:14px;height:14px;">'
+      + hname + '班</label>';
+  }
+  mainSel.innerHTML = mainHtml;
+  subWrap.innerHTML = subHtml;
+}
+
+let _fukuchoUrl = '';
+function generateFukuchoUrl(){
+  const mainHan = document.getElementById('fukucho-main-han').value;
+  if(!mainHan){ flash('cfg-han-msg', 'メイン班を選択してください'); return; }
+  const subCbs = document.querySelectorAll('[data-fukucho-sub]:checked');
+  const subs = [];
+  for(let i = 0; i < subCbs.length; i++){
+    const v = subCbs[i].dataset.fukuchoSub;
+    if(v !== mainHan) subs.push(v);
+  }
+  const base = location.href.split('?')[0];
+  _fukuchoUrl = base + '?mode=fukucho&han=' + encodeURIComponent(mainHan)
+    + (subs.length ? '&sub=' + subs.map(function(s){ return encodeURIComponent(s); }).join(',') : '');
+  const resultEl = document.getElementById('fukucho-url-result');
+  const copyBtn = document.getElementById('fukucho-url-copy-btn');
+  resultEl.textContent = _fukuchoUrl;
+  copyBtn.style.display = '';
+}
+
+function copyFukuchoUrl(){
+  if(!_fukuchoUrl) return;
+  try{
+    navigator.clipboard.writeText(_fukuchoUrl).then(function(){
+      flash('cfg-han-msg', '副長URLをコピーしました');
+    });
+  } catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = _fukuchoUrl;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); }catch(e2){}
+    document.body.removeChild(ta);
+    flash('cfg-han-msg', '副長URLをコピーしました');
+  }
 }
 
 // 班長URLコピーボタンのイベント委譲
