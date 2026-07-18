@@ -766,6 +766,10 @@ async function gasLoad(){
     renderHCards(); renderHList(); renderRoster();
     renderKumiSelect(); renderEditKumiSelect();
     renderHanTable();
+    // 班長・副長モードの場合、データロード完了後に制限UIを再適用
+    if(isRestricted()){
+      applyRoleRestrictions();
+    }
     updateSyncBadge('synced');
   } catch(err) {
     updateSyncBadge('error', err.message);
@@ -1597,6 +1601,13 @@ function renderRoster(){
   const q = (document.getElementById('mbr-search')?.value||'').toLowerCase();
   const sortMode = document.getElementById('mbr-sort')?.value || 'default';
   const filterMode = document.getElementById('mbr-filter')?.value || 'all';
+
+  // GAS同期前でrosterが空の場合（班長・副長モードで特に発生）
+  if(isRestricted() && roster.length === 0){
+    document.getElementById('mbr-list').innerHTML = '<div style="padding:12px 14px;font-size:13px;color:#888">⏳ データ読み込み中…（同期完了後に表示されます）</div>';
+    document.getElementById('mbr-count').textContent = '';
+    return;
+  }
 
   // 検索フィルタ
   let filtered = q
@@ -2437,45 +2448,57 @@ function canViewMember(m){
   return ROLE.hans.indexOf(m.han || '') >= 0;
 }
 
+function applyRoleRestrictions(){
+  if(isSocho()) return;
+
+  // タブを制限
+  const hideTabIds = ['tb4','tb5','tb6'];
+  for(let i = 0; i < hideTabIds.length; i++){
+    const el = document.getElementById(hideTabIds[i]);
+    if(el) el.style.display = 'none';
+  }
+
+  // 名簿タブの管理ボタンを非表示
+  const pg3 = document.getElementById('pg3');
+  if(pg3){
+    const allBtns = pg3.querySelectorAll('button, label');
+    for(let i = 0; i < allBtns.length; i++){
+      const el = allBtns[i];
+      const txt = (el.textContent || '');
+      if(txt.indexOf('Excel') >= 0 || txt.indexOf('読み込み') >= 0 || txt.indexOf('出力') >= 0){
+        el.style.display = 'none';
+      }
+    }
+    const xlsxInput = pg3.querySelector('#xlsx-import');
+    if(xlsxInput) xlsxInput.style.display = 'none';
+  }
+
+  // 集計タブの班プルダウンを再構築（権限フィルタ適用）
+  buildHanSelects();
+
+  // 名簿を再描画（権限フィルタ適用）
+  renderRoster();
+}
+
 function initHanchoMode(){
-  if(isSocho()) return; // 総長はそのまま
+  if(isSocho()) return;
 
-  const han = ROLE.han;
-  _hanchoHan = han;
+  _hanchoHan = ROLE.han;
 
-  if(isHancho() || isFukucho()){
-    // タブを制限（設定タブを非表示）
-    const tabEl = document.getElementById('tb6');
-    if(tabEl) tabEl.style.display = 'none';
-    // 折伏予定・メールタブも非表示
-    const tb4 = document.getElementById('tb4'); if(tb4) tb4.style.display = 'none';
-    const tb5 = document.getElementById('tb5'); if(tb5) tb5.style.display = 'none';
-
-    // ヘッダーに役職表示を追加
-    const roleLabel = isHancho() ? han + '班長' : han + '班 副長';
+  // ヘッダーに役職バッジを追加（重複防止）
+  if(!document.getElementById('role-badge')){
+    const roleLabel = isHancho()
+      ? ROLE.han + '班長'
+      : ROLE.han + '班 副長（担当：' + ROLE.hans.join('・') + '）';
     const badge = document.createElement('div');
+    badge.id = 'role-badge';
     badge.style.cssText = 'background:#1a6bbf;color:#fff;font-size:12px;padding:3px 10px;text-align:right;';
     badge.textContent = '🔑 ' + roleLabel + ' モード';
     document.body.insertBefore(badge, document.body.firstChild);
-
-    // 班長専用入力画面（旧hanchoページ）は使わず通常タブで動かす
-    // 集計タブのハン選択を制限
-    _hanchoActiveItems = ['sunday'];
   }
 
-  // 集計タブの班プルダウンを制限（renderAggTable内で参照）
-  // 名簿タブの管理ボタンを非表示
-  const adminBtns = document.querySelectorAll('#pg3 .btn-p, #pg3 .btn-s, #pg3 .btn-w');
-  for(let i = 0; i < adminBtns.length; i++){
-    const btn = adminBtns[i];
-    const txt = btn.textContent || '';
-    if(txt.indexOf('Excel') >= 0 || txt.indexOf('読み込み') >= 0 || txt.indexOf('削除') >= 0){
-      btn.style.display = 'none';
-    }
-  }
-  // Excelインポートの入力も非表示
-  const xlsxImportLabel = document.querySelector('label[for="xlsx-import"], #xlsx-import');
-  if(xlsxImportLabel) xlsxImportLabel.style.display = 'none';
+  // 制限UIを適用
+  applyRoleRestrictions();
 }
 
 function getHanchoMembers(){
