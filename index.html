@@ -707,6 +707,17 @@ let kumiMap={}; // {組名: 班名}
 // ============================================================
 let GAS_URL = '';
 try { GAS_URL = localStorage.getItem('gas_url') || ''; } catch(e){}
+// URLパラメータにgas=が含まれている場合（班長・副長URL経由）は上書き
+(function(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const gasFromUrl = params.get('gas');
+    if(gasFromUrl){
+      GAS_URL = decodeURIComponent(gasFromUrl);
+      try{ localStorage.setItem('gas_url', GAS_URL); }catch(e){}
+    }
+  }catch(e){}
+})();
 
 
 function setGasUrl(url){
@@ -2689,15 +2700,15 @@ function renderHanchoBtnList(){
   if(!wrap) return;
   if(!hanList.length){
     wrap.innerHTML = '<div style="font-size:13px;color:#888;padding:4px 0">班が登録されていません</div>';
-    // 副長セレクトもリセット
     renderFukuchoHanSelects();
     return;
   }
   const base = location.href.split('?')[0];
+  const gasParam = GAS_URL ? '&gas=' + encodeURIComponent(GAS_URL) : '';
   let html = '<div style="display:flex;flex-direction:column;gap:6px;">';
   for(let i = 0; i < hanList.length; i++){
     const hname = hanList[i].name;
-    const url = base + '?mode=hancho&han=' + encodeURIComponent(hname);
+    const url = base + '?mode=hancho&han=' + encodeURIComponent(hname) + gasParam;
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
       + '<span style="font-size:13px;min-width:100px">' + hname + '班</span>'
       + '<button class="btn btn-p" style="font-size:11px;padding:3px 10px" data-hancho-url="' + url + '">班長URLコピー</button>'
@@ -2737,8 +2748,10 @@ function generateFukuchoUrl(){
     if(v !== mainHan) subs.push(v);
   }
   const base = location.href.split('?')[0];
+  const gasParam = GAS_URL ? '&gas=' + encodeURIComponent(GAS_URL) : '';
   _fukuchoUrl = base + '?mode=fukucho&han=' + encodeURIComponent(mainHan)
-    + (subs.length ? '&sub=' + subs.map(function(s){ return encodeURIComponent(s); }).join(',') : '');
+    + (subs.length ? '&sub=' + subs.map(function(s){ return encodeURIComponent(s); }).join(',') : '')
+    + gasParam;
   const resultEl = document.getElementById('fukucho-url-result');
   const copyBtn = document.getElementById('fukucho-url-copy-btn');
   resultEl.textContent = _fukuchoUrl;
