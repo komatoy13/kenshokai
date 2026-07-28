@@ -116,6 +116,16 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
   <div class="tab" id="tb6" onclick="sw(6)">設定</div>
 </div>
 
+<!-- デバッグパネル（問題解決後に削除） -->
+<div id="debug-panel" style="background:#000;color:#0f0;font-size:10px;padding:6px;font-family:monospace;max-height:120px;overflow-y:auto;display:none;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+    <span>🔍 デバッグログ</span>
+    <button onclick="document.getElementById('debug-panel').style.display='none'" style="background:none;border:none;color:#f00;cursor:pointer;font-size:12px;">✕</button>
+  </div>
+  <div id="debug-log"></div>
+</div>
+<button onclick="document.getElementById('debug-panel').style.display='block'" style="position:fixed;bottom:10px;right:10px;z-index:999;font-size:10px;padding:3px 8px;background:#333;color:#fff;border:none;border-radius:4px;opacity:0.7;">ログ</button>
+
 <!-- ========== 班長専用入力画面 ========== -->
 <div id="hancho-page">
   <div style="background:#1a6bbf;color:#fff;padding:12px 14px;font-size:15px;font-weight:600;" id="hancho-title">班長入力画面</div>
@@ -705,6 +715,14 @@ let kumiMap={}; // {組名: 班名}
 // ============================================================
 // Google Apps Script 連携
 // ============================================================
+// スマホデバッグ用ログ
+const _dbgLogs = [];
+function dbgLog(msg){
+  _dbgLogs.push(msg);
+  const el = document.getElementById('debug-log');
+  if(el) el.innerHTML = _dbgLogs.map(function(l){ return '<div>' + l + '</div>'; }).join('');
+}
+
 let GAS_URL = '';
 try { GAS_URL = localStorage.getItem('gas_url') || ''; } catch(e){}
 // URLパラメータにgas=が含まれている場合（班長・副長URL経由）は上書き
@@ -743,18 +761,17 @@ function updateSyncBadge(status, msg){
 }
 
 async function gasLoad(){
-  if(!GAS_URL) return;
+  dbgLog('gasLoad開始 GAS_URL=' + (GAS_URL ? GAS_URL.slice(0,40)+'...' : '空'));
+  if(!GAS_URL){ dbgLog('GAS_URL未設定のため中断'); return; }
   updateSyncBadge('syncing');
   try {
+    dbgLog('fetch開始...');
     const res = await fetch(GAS_URL+'?t='+Date.now());
+    dbgLog('fetch完了 status=' + res.status);
     const json = await res.json();
     if(!json.ok) throw new Error(json.error||'fetch失敗');
     const d = json.data;
-    const keyMap = {
-      roster:'roster', aggData:'aggData', aggHistory:'aggHistory',
-      hHist:'hHist', hPeriod:'hPeriod', fukubokuPlans:'fukubokuPlans',
-      kumiMap:'kumiMap', itemModes:'itemModes'
-    };
+    dbgLog('データ取得OK roster件数=' + (d.roster ? d.roster.length : 0));
     if(d.roster)        roster        = d.roster;
     if(d.aggData)       aggData       = d.aggData;
     if(d.aggHistory)    aggHistory    = d.aggHistory;
@@ -777,12 +794,15 @@ async function gasLoad(){
     renderHCards(); renderHList(); renderRoster();
     renderKumiSelect(); renderEditKumiSelect();
     renderHanTable();
+    dbgLog('描画完了 ROLE=' + ROLE.role + ' hans=' + ROLE.hans.join(','));
     // 班長・副長モードの場合、データロード完了後に制限UIを再適用
     if(isRestricted()){
       applyRoleRestrictions();
+      dbgLog('権限制限適用完了');
     }
     updateSyncBadge('synced');
   } catch(err) {
+    dbgLog('エラー: ' + err.message);
     updateSyncBadge('error', err.message);
   }
 }
@@ -2891,7 +2911,13 @@ function init(){
   const gasInput = document.getElementById('gas-url-input');
   if(gasInput) gasInput.value = GAS_URL;
   updateSyncBadge(GAS_URL ? 'syncing' : 'local');
-  if(GAS_URL) gasLoad();
+  dbgLog('init開始 ROLE=' + ROLE.role + ' han=' + ROLE.han + ' GAS_URL=' + (GAS_URL ? '設定済' : '未設定'));
+  if(GAS_URL){
+    dbgLog('gasLoad呼び出し');
+    gasLoad();
+  } else {
+    dbgLog('GAS_URL未設定 gasLoad未実行');
+  }
 
   // ヘッダーボタンのイベント委譲（data属性方式）
   document.addEventListener('click',function(e){ if(!e.target.closest('#agg-thead')) return;
