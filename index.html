@@ -795,6 +795,7 @@ async function gasLoad(){
     renderKumiSelect(); renderEditKumiSelect();
     renderHanTable();
     dbgLog('描画完了 ROLE=' + ROLE.role + ' hans=' + ROLE.hans.join(','));
+    dbgCheckHan();
     // 班長・副長モードの場合、データロード完了後に制限UIを再適用
     if(isRestricted()){
       applyRoleRestrictions();
@@ -2477,6 +2478,15 @@ function isRestricted(){ return !isSocho(); }
 function canViewMember(m){
   if(isSocho()) return true;
   return ROLE.hans.indexOf(m.han || '') >= 0;
+}
+
+// デバッグ：名簿のhanフィールドの実際の値を確認
+function dbgCheckHan(){
+  const sample = roster.slice(0,5);
+  for(let i=0;i<sample.length;i++){
+    dbgLog('roster['+i+'] han="'+(sample[i].han||'')+ '" sei='+sample[i].sei);
+  }
+  dbgLog('ROLE.hans='+JSON.stringify(ROLE.hans));
 }
 
 function applyRoleRestrictions(){
