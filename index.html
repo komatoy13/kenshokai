@@ -2518,6 +2518,9 @@ function applyRoleRestrictions(){
   buildHanSelects();
 
   // 名簿を再描画（権限フィルタ適用）
+  dbgLog('applyRoleRestrictions: roster=' + roster.length + ' hans=' + ROLE.hans.join(','));
+  const testFiltered = roster.filter(function(m){ return canViewMember(m); });
+  dbgLog('フィルタ後件数=' + testFiltered.length);
   renderRoster();
 }
 
