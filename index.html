@@ -1649,7 +1649,11 @@ function renderRoster(){
   // 権限フィルタ（班長・副長は自分の班のみ）
   if(isRestricted()){
     filtered = filtered.filter(function(m){ return canViewMember(m); });
+    dbgLog('renderRoster権限フィルタ後=' + filtered.length);
   }
+
+  const mbrList = document.getElementById('mbr-list');
+  dbgLog('mbr-list exists=' + !!mbrList);
 
   // 絞り込みフィルタ
   filtered = applyRosterFilter(filtered, filterMode);
