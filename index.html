@@ -2494,6 +2494,16 @@ function dbgCheckHan(){
     dbgLog('roster['+i+'] han="'+(sample[i].han||'')+ '" sei='+sample[i].sei);
   }
   dbgLog('ROLE.hans='+JSON.stringify(ROLE.hans));
+  // 非集計メンバーのhanを確認
+  const nonAgg = roster.filter(function(m){ return !m.aggTarget; }).slice(0,3);
+  for(let i=0;i<nonAgg.length;i++){
+    dbgLog('非集計['+i+'] han="'+(nonAgg[i].han||'')+ '" sei='+nonAgg[i].sei);
+  }
+  // ROLE.hansに一致するメンバーの集計/非集計の内訳
+  const matched = roster.filter(function(m){ return canViewMember(m); });
+  const matchedAgg = matched.filter(function(m){ return m.aggTarget; }).length;
+  const matchedNonAgg = matched.filter(function(m){ return !m.aggTarget; }).length;
+  dbgLog('一致:集計='+matchedAgg+' 非集計='+matchedNonAgg);
 }
 
 function applyRoleRestrictions(){
