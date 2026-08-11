@@ -638,7 +638,11 @@ function rebuildAllHanSelects(){
 
 // 集計対象メンバーを roster から動的に構築（組昇順→読み昇順でソート）
 function sortedAggTargets(){
-  const targets = roster.filter(function(m){ return m.aggTarget; });
+  let targets = roster.filter(function(m){ return m.aggTarget; });
+  // 班長・副長は自分の許可班のみに絞る
+  if(isRestricted()){
+    targets = targets.filter(function(m){ return canViewMember(m); });
+  }
   targets.sort(function(a, b){
     const ka = (a.kumi||'');
     const kb = (b.kumi||'');
@@ -2484,7 +2488,11 @@ function isRestricted(){ return !isSocho(); }
 // 自分が閲覧可能な班のメンバーか判定
 function canViewMember(m){
   if(isSocho()) return true;
-  return ROLE.hans.indexOf(m.han || '') >= 0;
+  // hanフィールドが直接設定されている場合
+  if(m.han && ROLE.hans.indexOf(m.han) >= 0) return true;
+  // hanが空でもkumiからkumiMap経由で班を判定
+  if(m.kumi && kumiMap[m.kumi] && ROLE.hans.indexOf(kumiMap[m.kumi]) >= 0) return true;
+  return false;
 }
 
 // デバッグ：名簿のhanフィールドの実際の値を確認
