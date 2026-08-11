@@ -1294,8 +1294,29 @@ function renderAggHist(){
 }
 
 /* ===== 折伏成果 ===== */
-function getHTotal(){if(!hPeriod.start)return 0;return roster.filter(m=>!m.minyushin&&m.nyushin&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end).length;}
-function getHByHan(){const aggHan=getAggHan();const mp={};aggHan.forEach(h=>mp[h.name]=0);if(!hPeriod.start)return mp;roster.filter(m=>!m.minyushin&&m.nyushin&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end).forEach(m=>{if(mp[m.han]!=null)mp[m.han]++;});return mp;}
+// 入信日の表記を正規化（スラッシュ→ハイフン）
+function normalizeDate(s){
+  if(!s) return '';
+  return String(s).replace(/\//g, '-').trim();
+}
+function getHTotal(){
+  if(!hPeriod.start) return 0;
+  return roster.filter(function(m){
+    const nd = normalizeDate(m.nyushin);
+    return !m.minyushin && nd && nd >= hPeriod.start && nd <= hPeriod.end;
+  }).length;
+}
+function getHByHan(){
+  const aggHan = getAggHan();
+  const mp = {};
+  aggHan.forEach(function(h){ mp[h.name] = 0; });
+  if(!hPeriod.start) return mp;
+  roster.filter(function(m){
+    const nd = normalizeDate(m.nyushin);
+    return !m.minyushin && nd && nd >= hPeriod.start && nd <= hPeriod.end;
+  }).forEach(function(m){ if(mp[m.han] != null) mp[m.han]++; });
+  return mp;
+}
 function renderHCards(){
   const total=getHTotal(),byHan=getHByHan();
   const top=Object.entries(byHan).sort((a,b)=>b[1]-a[1])[0];
@@ -1304,7 +1325,10 @@ function renderHCards(){
   if(el) el.innerHTML=`<div class="sc"><div class="sc-l">期間合計</div><div class="sc-v">${total}</div><div class="sc-s">${period}</div></div><div class="sc"><div class="sc-l">最多班</div><div class="sc-v">${top&&top[1]>0?top[1]:'―'}</div><div class="sc-s">${top&&top[1]>0?top[0]+'班':''}</div></div>`;
 }
 function renderHList(){
-  const members=roster.filter(m=>!m.minyushin&&m.nyushin&&hPeriod.start&&m.nyushin>=hPeriod.start&&m.nyushin<=hPeriod.end);
+  const members=roster.filter(function(m){
+    const nd = normalizeDate(m.nyushin);
+    return !m.minyushin && nd && hPeriod.start && nd >= hPeriod.start && nd <= hPeriod.end;
+  });
   const el=document.getElementById('h-list');if(!el)return;
   if(!members.length){el.innerHTML='<div style="font-size:13px;color:#888;padding:10px 14px">期間内の入信者はいません</div>';return;}
   let html='';
@@ -1558,7 +1582,7 @@ function registerMbr(){
     kumi:document.getElementById('r-kumi').value,
     han:document.getElementById('r-han').value,
     shokai:gv('r-shokai'),
-    nyushin:minyushin?'':gv('r-nyushin'),
+    nyushin:minyushin?'':normalizeDate(gv('r-nyushin')),
     biko:'',
     comment:document.getElementById('r-comment').value.trim(),
     commentUpdated:document.getElementById('r-comment').value.trim() ? td : '',
@@ -1716,7 +1740,7 @@ function renderRoster(){
       + '<div style="flex:1;min-width:0;">'
       + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
       + '<span style="font-size:14px;font-weight:500;cursor:pointer;color:#1a6bbf;text-decoration:underline dotted;" data-open-comment="' + m.id + '">' + nameDisp + '</span>'
-      + (m.minyushin ? '<span class="tag" style="background:#ffeeba;color:#856404;border:1px solid #ffc107">未入信</span>' : m.nyushin ? '<span class="tag">入信済</span>' : '')
+      + (m.minyushin ? '<span class="tag" style="background:#ffeeba;color:#856404;border:1px solid #ffc107">未入信</span>' : '')
       + (aggOn ? '<span class="tag" style="background:#d4edda;color:#155724;border:1px solid #28a745">集計</span>' : '')
       + (hasComment ? '<span style="font-size:11px;color:#888">💬</span>' : '')
       + '</div>'
@@ -1917,7 +1941,7 @@ function saveEditMbr(){
     birth:document.getElementById('e-birth').value.trim(),
     kumi:document.getElementById('e-kumi').value,han:document.getElementById('e-han').value,
     shokai:document.getElementById('e-shokai').value.trim(),
-    nyushin:minyushin?'':document.getElementById('e-nyushin').value.trim(),
+    nyushin:minyushin?'':normalizeDate(document.getElementById('e-nyushin').value.trim()),
     biko:'',
     comment:(document.getElementById('e-comment').value||'').trim(),
     commentUpdated:(document.getElementById('e-comment').value||'').trim() ? td : (roster[idx].commentUpdated||''),
