@@ -1148,27 +1148,32 @@ function renderAggSummary(){
   document.getElementById('agg-scards').innerHTML=html;
 }
 
+function saveAggData(){
+  try{ localStorage.setItem('agg_data', JSON.stringify(aggData)); }catch(e){}
+  gasSave('aggData', aggData);
+}
+
 function cycAgg(k,itemId){
   if(!aggData[k]) aggData[k]={};
   if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:false};
   const cur=aggData[k][itemId].grab||'';
   aggData[k][itemId].grab=ABCC[(ABCC.indexOf(cur)+1)%ABCC.length];
   renderAggTable(); renderAggSummary();
-  gasSave('aggData', aggData);
+  saveAggData();
 }
 function togAgg(k,itemId){
   if(!aggData[k]) aggData[k]={};
   if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:false};
   aggData[k][itemId].result=!aggData[k][itemId].result;
   renderAggTable(); renderAggSummary();
-  gasSave('aggData', aggData);
+  saveAggData();
 }
 function adjNum(k,itemId,delta){
   if(!aggData[k]) aggData[k]={};
   if(!aggData[k][itemId]) aggData[k][itemId]={grab:'',result:0};
   aggData[k][itemId].result=Math.max(0,(aggData[k][itemId].result||0)+delta);
   renderAggTable(); renderAggSummary();
-  gasSave('aggData', aggData);
+  saveAggData();
 }
 
 // 掴み保存（リセットなし、上書き）
@@ -3094,9 +3099,17 @@ function init(){
   fukubokuPlans=load('fukuboku_plans',[]);
   kumiMap=load('kumi_map',{});
   hanList=load('han_list',[]);
+  pendingMembers=load('pending_members',[]);
 
-  // aggData初期化（rosterベース）
-  initAggData();
+  // aggData: localStorageに保存済みのデータを読み込み、なければrosterから初期化
+  const savedAggData = load('agg_data', null);
+  if(savedAggData){
+    aggData = savedAggData;
+    // rosterに新しいメンバーが追加されている場合は補完
+    initAggData();
+  } else {
+    initAggData();
+  }
 
   document.getElementById('agg-date').value=td;
   document.getElementById('h-rdate') && (document.getElementById('h-rdate').value=td);
