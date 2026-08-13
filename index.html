@@ -171,7 +171,7 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
   <div class="item-checks" id="item-checks"></div>
 
   <!-- カスタム項目追加 -->
-  <div class="row">
+  <div class="row" id="item-add-row">
     <div class="lbl">項目追加</div>
     <input class="w120" id="custom-name" placeholder="例：○○大会">
     <select id="custom-type">
@@ -221,6 +221,11 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
 
 <!-- ========== 折伏成果 ========== -->
 <div class="page" id="pg1">
+  <!-- 承認待ち（支隊長のみ表示） -->
+  <div id="pending-section" style="display:none;">
+    <div class="sec-hd" style="background:#fff3cd;color:#856404;">📋 仮登録の承認待ち</div>
+    <div id="pending-list"></div>
+  </div>
   <div class="sec-hd">法戦期間</div>
   <div class="row">
     <div class="lbl">期間</div>
@@ -304,7 +309,7 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
   <div id="r-nyushin-row" class="row"><div class="lbl">入信日</div><input type="date" id="r-nyushin"></div>
   <div class="row"><div class="lbl">備考・メモ</div><textarea id="r-comment" placeholder="状況メモ・訪問記録など（名簿の名前をタップすると確認できます）" style="width:200px;min-height:60px;font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;resize:vertical;"></textarea></div>
   <div class="row" style="gap:10px;">
-    <button class="btn btn-p" onclick="registerMbr()">名簿に登録</button>
+    <button class="btn btn-p" id="reg-main-btn" onclick="registerMbr()">名簿に登録</button>
     <button class="btn" onclick="clearReg()">クリア</button>
     <span id="r-msg"></span>
   </div>
@@ -782,6 +787,7 @@ async function gasLoad(){
     if(d.hHist)         hHist         = d.hHist;
     if(d.hPeriod)       hPeriod       = d.hPeriod;
     if(d.fukubokuPlans) fukubokuPlans = d.fukubokuPlans;
+    if(d.pendingMembers) pendingMembers = d.pendingMembers;
     if(d.kumiMap)       kumiMap       = d.kumiMap;
     if(d.itemModes)     itemModes     = d.itemModes;
     if(d.hanList)       hanList       = d.hanList;
@@ -791,13 +797,15 @@ async function gasLoad(){
     // ローカルにも保存
     const lsMap = {roster:'roster',aggData:'agg_data',aggHistory:'agg_hist',
       hHist:'h_hist',hPeriod:'h_period',fukubokuPlans:'fukuboku_plans',
-      kumiMap:'kumi_map',itemModes:'item_modes',hanList:'han_list'};
+      kumiMap:'kumi_map',itemModes:'item_modes',hanList:'han_list',
+      pendingMembers:'pending_members'};
     Object.entries(lsMap).forEach(([k,lk])=>{ try{if(d[k]) localStorage.setItem(lk,JSON.stringify(d[k]));}catch(e){} });
     initAggData(); rebuildAllHanSelects();
     renderItemChecks(); renderAggTable(); renderAggSummary();
     renderHCards(); renderHList(); renderRoster();
     renderKumiSelect(); renderEditKumiSelect();
     renderHanTable();
+    renderPendingList();
     dbgLog('描画完了 ROLE=' + ROLE.role + ' hans=' + ROLE.hans.join(','));
     dbgCheckHan();
     // 班長・副長モードの場合、データロード完了後に制限UIを再適用
@@ -884,9 +892,10 @@ function sw(i){
   document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',j===i));
   const pg3 = document.getElementById('pg3');
   dbgLog('pg3.classList=' + (pg3 ? pg3.className : 'null'));
-  if(i===3)renderRoster();
-  if(i===4)renderFukubokuList();
-  if(i===5)generateMail();
+  if(i===1) renderPendingList();
+  if(i===3) renderRoster();
+  if(i===4) renderFukubokuList();
+  if(i===5) generateMail();
   if(i===6){ renderKumiTable(); renderHanTable(); renderHanchoBtnList(); renderKumiNameSelect(); }
 }
 
@@ -2291,7 +2300,114 @@ function importBackup(input){
   reader.readAsText(file);
 }
 
-let fukubokuPlans = [];
+/* ===== 仮登録（班長・副長から支隊長への申請） ===== */
+function savePendingMembers(){
+  try{ localStorage.setItem('pending_members', JSON.stringify(pendingMembers)); }catch(e){}
+  gasSave('pendingMembers', pendingMembers);
+}
+
+function pendingRegMbr(){
+  const sei = (document.getElementById('r-sei').value||'').trim();
+  if(!sei){ showMsg('r-msg','姓は必須です','err'); return; }
+  const minyushin = document.getElementById('r-minyushin').checked;
+  const pending = {
+    id: 'pending_' + Date.now(),
+    sei, mei: (document.getElementById('r-mei').value||'').trim(),
+    seiK: gv('r-sk'), meiK: gv('r-mk'),
+    pref: gv('r-pref'), city: gv('r-city'), addr: gv('r-addr'),
+    tel: gv('r-tel').replace(/[-ー－]/g,''),
+    tel2: gv('r-tel2').replace(/[-ー－]/g,''),
+    birth: gv('r-birth') || '',
+    kumi: document.getElementById('r-kumi').value,
+    han: document.getElementById('r-han').value,
+    shokai: gv('r-shokai'),
+    nyushin: minyushin ? '' : normalizeDate(gv('r-nyushin')),
+    minyushin,
+    comment: gv('r-comment')||'',
+    appliedBy: ROLE.han + (isHancho() ? '班長' : '班副長'),
+    appliedAt: td,
+  };
+  pendingMembers.push(pending);
+  savePendingMembers();
+  showMsg('r-msg', '仮登録しました。支隊長の承認をお待ちください。', 'ok');
+  clearReg();
+}
+
+function renderPendingList(){
+  const sec = document.getElementById('pending-section');
+  const listEl = document.getElementById('pending-list');
+  if(!sec || !listEl) return;
+  if(isSocho() && pendingMembers.length > 0){
+    sec.style.display = '';
+  } else {
+    sec.style.display = 'none';
+    return;
+  }
+  let html = '';
+  for(let i = 0; i < pendingMembers.length; i++){
+    const p = pendingMembers[i];
+    html += '<div style="padding:10px 14px;border-bottom:1px solid #eee;">'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+      + '<span style="font-weight:500;font-size:14px;">' + p.sei + (p.mei||'') + '</span>'
+      + '<span style="font-size:11px;color:#888;">' + (p.kumi||'') + ' ' + (p.han ? p.han+'班':'') + '</span>'
+      + '<span style="font-size:11px;color:#888;">申請：' + p.appliedBy + '（' + p.appliedAt + '）</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#666;margin-top:3px;">'
+      + (p.nyushin ? '入信日：' + p.nyushin + '　' : '未入信　')
+      + (p.tel ? '📞' + p.tel + '　' : '')
+      + (p.pref||'') + (p.city||'') + (p.addr||'')
+      + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:6px;">'
+      + '<button class="btn btn-p" style="font-size:12px;padding:4px 14px;" data-approve-id="' + p.id + '">✅ 承認して名簿に追加</button>'
+      + '<button class="btn btn-w" style="font-size:12px;padding:4px 14px;" data-reject-id="' + p.id + '">❌ 却下</button>'
+      + '</div>'
+      + '</div>';
+  }
+  listEl.innerHTML = html || '<div style="padding:10px 14px;font-size:13px;color:#888">承認待ちなし</div>';
+}
+
+// 承認・却下のイベント委譲
+document.addEventListener('click', function(e){
+  const approveBtn = e.target.closest('[data-approve-id]');
+  if(approveBtn){
+    const id = approveBtn.dataset.approveId;
+    const idx = pendingMembers.findIndex(function(p){ return p.id === id; });
+    if(idx < 0) return;
+    const p = pendingMembers[idx];
+    // 正式に名簿に追加
+    roster.push({
+      id: Date.now(),
+      sei: p.sei, mei: p.mei||'',
+      seiK: p.seiK||'', meiK: p.meiK||'',
+      pref: p.pref||'', city: p.city||'', addr: p.addr||'',
+      tel: p.tel||'', tel2: p.tel2||'',
+      birth: p.birth||'',
+      kumi: p.kumi||'', han: p.han||'',
+      shokai: p.shokai||'',
+      nyushin: p.nyushin||'',
+      minyushin: !!p.minyushin,
+      comment: p.comment||'',
+      commentUpdated: '',
+      aggTarget: false,
+      hossen: false,
+    });
+    pendingMembers.splice(idx, 1);
+    saveRoster();
+    savePendingMembers();
+    renderHCards(); renderHList();
+    renderPendingList();
+    return;
+  }
+  const rejectBtn = e.target.closest('[data-reject-id]');
+  if(rejectBtn){
+    const id = rejectBtn.dataset.rejectId;
+    if(!confirm('この仮登録を却下しますか？')) return;
+    pendingMembers = pendingMembers.filter(function(p){ return p.id !== id; });
+    savePendingMembers();
+    renderPendingList();
+    return;
+  }
+});
 
 function fpUpdateMembers(){
   const hanName = document.getElementById('fp-han').value;
@@ -2349,15 +2465,19 @@ function renderFukubokuList(){
 /* ===== メール生成 ===== */
 
 // 氏名から表示用の短縮名を生成（名字。同姓が同じ班にいる場合は名の一文字を追加）
-function shortName(name, hanMembers){
-  const family = name.split(/[\s　]/)[0];
-  // 同じ班で同じ名字が複数いるか
-  const sameFamily = hanMembers.filter(m => m.split(/[\s　]/)[0] === family);
-  if(sameFamily.length <= 1) return family;
-  // 名の一文字を追加（スペース以降の最初の文字、なければ全名の名字以降の最初の文字）
-  const rest = name.slice(family.length).trim();
-  const given1 = rest ? rest[0] : (name.length > family.length ? name[family.length] : '');
-  return family + (given1 || '');
+function shortName(fullName, hanMembers){
+  // fullNameはsei+meiの結合文字列。rosterから該当メンバーを探してseiを取得
+  const member = roster.find(function(m){ return (m.sei+(m.mei||'')) === fullName; });
+  const sei = member ? member.sei : fullName;
+  const mei = member ? (member.mei||'') : '';
+  // 同じ班で同じ苗字が複数いるか確認
+  const sameSei = hanMembers.filter(function(n){
+    const m2 = roster.find(function(m){ return (m.sei+(m.mei||'')) === n; });
+    return m2 ? m2.sei === sei : n.startsWith(sei);
+  });
+  if(sameSei.length <= 1) return sei;
+  // 同じ苗字が複数いる場合は名の1文字を追加
+  return sei + (mei ? mei[0] : '');
 }
 
 function generateMail(){
@@ -2541,7 +2661,7 @@ function dbgCheckHan(){
 function applyRoleRestrictions(){
   if(isSocho()) return;
 
-  // タブを制限
+  // タブを制限（設定・折伏予定・メール）
   const hideTabIds = ['tb4','tb5','tb6'];
   for(let i = 0; i < hideTabIds.length; i++){
     const el = document.getElementById(hideTabIds[i]);
@@ -2561,6 +2681,39 @@ function applyRoleRestrictions(){
     }
     const xlsxInput = pg3.querySelector('#xlsx-import');
     if(xlsxInput) xlsxInput.style.display = 'none';
+  }
+
+  // 集計タブ：「班長からの報告を取り込む」「項目選択」「追加」を非表示
+  const pg0 = document.getElementById('pg0');
+  if(pg0){
+    // 班長インポートエリアを非表示
+    const hanchoImport = pg0.querySelector('#hancho-import-text');
+    if(hanchoImport){
+      const importWrap = hanchoImport.closest('.row') || hanchoImport.parentElement;
+      if(importWrap) importWrap.style.display = 'none';
+    }
+    // 「班長からの報告を取り込む」セクション見出しも非表示
+    const secHds = pg0.querySelectorAll('.sec-hd');
+    for(let i = 0; i < secHds.length; i++){
+      if(secHds[i].textContent.indexOf('班長からの報告') >= 0){
+        secHds[i].style.display = 'none';
+      }
+    }
+    // 項目選択チェックボックスエリアを非表示（読み取り専用にする）
+    const itemChecks = pg0.querySelector('#item-checks');
+    if(itemChecks) itemChecks.style.pointerEvents = 'none';
+    // 「追加」ボタンと追加項目入力を非表示
+    const addRow = pg0.querySelector('#item-add-row');
+    if(addRow) addRow.style.display = 'none';
+  }
+
+  // 折伏成果タブ：期間設定を操作不可に
+  const pg1 = document.getElementById('pg1');
+  if(pg1){
+    const inputs = pg1.querySelectorAll('input, button, select');
+    for(let i = 0; i < inputs.length; i++){
+      inputs[i].disabled = true;
+    }
   }
 
   // 集計タブの班プルダウンを再構築（権限フィルタ適用）
@@ -2592,6 +2745,13 @@ function initHanchoMode(){
 
   // 制限UIを適用
   applyRoleRestrictions();
+
+  // 入信者登録ボタンを「仮登録」に変更
+  const regBtn = document.getElementById('reg-main-btn');
+  if(regBtn){
+    regBtn.textContent = '仮登録（支隊長に申請）';
+    regBtn.onclick = pendingRegMbr;
+  }
 }
 
 function getHanchoMembers(){
