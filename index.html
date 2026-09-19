@@ -329,6 +329,7 @@ input:focus,select:focus{outline:none;border-color:#1a6bbf;}
     <div class="lbl">ソート</div>
     <select id="mbr-sort" onchange="renderRoster()" style="font-size:12px;padding:4px 6px;">
       <option value="default">組・50音順（標準）</option>
+      <option value="han">班順</option>
       <option value="addr">住所順</option>
       <option value="comment_kw">アプローチ内容順</option>
       <option value="comment_date_desc">コメント更新日（新）</option>
@@ -1631,6 +1632,9 @@ function saveRoster(){
 const APPROACH_KW_ORDER = ['死亡','所在不明','電話番号使われていない','住所変わっている','連絡不可','電話出ない'];
 
 function getRosterSortKey(m, sortMode){
+  if(sortMode === 'han'){
+    return (m.han||'ﾟ') + (m.kumi||'') + (m.seiK||'') + (m.meiK||'');
+  }
   if(sortMode === 'addr'){
     return (m.pref||'') + (m.city||'') + (m.addr||'');
   }
@@ -2514,11 +2518,17 @@ function generateMail(){
       }
 
     } else if(isGrab){
-      const count = getAggAllMembers().filter(m => {
+      // A=1, B=0.5, C=0.2, それ以外=0 でスコア計算
+      const grabScore = {'A':1,'B':0.5,'C':0.2};
+      const totalScore = getAggAllMembers().reduce(function(s,m){
+        const g = aggData[memberKey(m.han,m.name)][item.id]?.grab;
+        return s + (grabScore[g]||0);
+      }, 0);
+      const abcCount = getAggAllMembers().filter(m => {
         const g = aggData[memberKey(m.han,m.name)][item.id]?.grab;
         return g === 'A' || g === 'B' || g === 'C';
       }).length;
-      lines.push(num++ + '.' + item.label + '掴み　' + count + '名');
+      lines.push(num++ + '.' + item.label + '掴み　' + abcCount + '名（' + totalScore.toFixed(1) + '）');
       const aggHan1=getAggHan();
       for(let hi = 0; hi < aggHan1.length; hi++){
         const h = aggHan1[hi];
@@ -2704,9 +2714,6 @@ function applyRoleRestrictions(){
         secHds[i].style.display = 'none';
       }
     }
-    // 項目選択チェックボックスエリアを非表示（読み取り専用にする）
-    const itemChecks = pg0.querySelector('#item-checks');
-    if(itemChecks) itemChecks.style.pointerEvents = 'none';
     // 「追加」ボタンと追加項目入力を非表示
     const addRow = pg0.querySelector('#item-add-row');
     if(addRow) addRow.style.display = 'none';
