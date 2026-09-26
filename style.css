@@ -1,0 +1,96 @@
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:sans-serif;font-size:14px;background:#f5f5f5;color:#222;}
+
+/* タブ */
+.tabs{display:flex;border-bottom:1px solid #ddd;background:#fff;position:sticky;top:0;z-index:20;}
+.tab{flex:1;padding:10px 1px;font-size:10px;text-align:center;cursor:pointer;color:#888;border-bottom:2px solid transparent;white-space:nowrap;}
+.tab.active{color:#1a6bbf;border-bottom:2px solid #1a6bbf;font-weight:500;}
+.page{display:none;}.page.active{display:block;}
+
+/* 共通部品 */
+.sec-hd{font-size:11px;font-weight:500;color:#888;letter-spacing:.04em;padding:7px 14px 5px;border-bottom:1px solid #eee;background:#fafafa;}
+.row{display:flex;align-items:center;gap:8px;padding:7px 14px;flex-wrap:wrap;border-bottom:1px solid #eee;}
+.lbl{font-size:12px;color:#888;min-width:64px;flex-shrink:0;}
+input,select{font-size:13px;padding:5px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;color:#222;}
+input:focus,select:focus{outline:none;border-color:#1a6bbf;}
+.w70{width:70px;}.w100{width:100px;}.w120{width:120px;}.w160{width:160px;}.w200{width:200px;}
+.btn{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid #ccc;background:#f0f0f0;color:#333;cursor:pointer;}
+.btn:active{opacity:.75;}
+.btn-p{background:#1a6bbf;color:#fff;border-color:#1a6bbf;}
+.btn-s{background:#1a8f5a;color:#fff;border-color:#1a8f5a;}
+.btn-w{background:#c0392b;color:#fff;border-color:#c0392b;}
+.ok{font-size:12px;color:#1a8f5a;}
+.err{font-size:12px;color:#c0392b;}
+
+/* サマリーカード */
+.scards{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid #eee;}
+.sc{background:#f0f0f0;border-radius:8px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;min-width:60px;}
+.sc-l{font-size:11px;color:#888;}.sc-v{font-size:20px;font-weight:500;}.sc-s{font-size:10px;color:#aaa;}
+.sc.hi .sc-v{color:#1a8f5a;}
+
+/* 集計テーブル */
+.agg-wrap{overflow-x:auto;padding:0;}
+.agg-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.agg-tbl th{background:#fafafa;color:#888;font-weight:500;font-size:11px;padding:6px 8px;border-bottom:1px solid #ddd;text-align:center;white-space:nowrap;}
+.agg-tbl th.name-col{text-align:left;min-width:70px;}
+.agg-tbl td{padding:5px 6px;border-bottom:1px solid #eee;text-align:center;vertical-align:middle;}
+.agg-tbl td.name-cell{text-align:left;font-size:13px;padding-left:10px;}
+.agg-tbl tr:last-child td{border-bottom:none;}
+.agg-tbl tr.summary-row td{background:#f0f7ff;font-weight:500;font-size:12px;}
+
+/* ABC ボタン */
+.abcb{width:30px;height:30px;border-radius:50%;border:none;cursor:pointer;font-size:11px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;}
+.abcb:active{transform:scale(.9);}
+.s-e{background:#e8e8e8;border:1px solid #ccc;color:#aaa;}
+.s-A{background:#1D9E75;color:#fff;}.s-B{background:#639922;color:#fff;}
+.s-C{background:#BA7517;color:#fff;}.s-D{background:#888;color:#fff;}.s-E{background:#E24B4A;color:#fff;}
+
+/* チェックボタン */
+.ckb{width:30px;height:30px;border-radius:50%;border:1px solid #ccc;cursor:pointer;font-size:14px;background:#f0f0f0;color:#aaa;display:inline-flex;align-items:center;justify-content:center;}
+.ckb.on{background:#1D9E75;color:#fff;border-color:#1D9E75;}
+
+/* 数値ボタン */
+.numcell{display:inline-flex;align-items:center;gap:3px;}
+.numb{width:22px;height:22px;border-radius:4px;border:1px solid #ccc;background:#f0f0f0;color:#333;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.numb:active{opacity:.7;}
+.numv{font-size:14px;font-weight:500;min-width:18px;text-align:center;}
+
+/* 項目選択チェックボックス */
+.item-checks{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-bottom:1px solid #eee;background:#fff;}
+.ic{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid #ddd;background:#f9f9f9;}
+.ic.active{border-color:#1a6bbf;background:#dbeeff;color:#1a6bbf;}
+.ic input{display:none;}
+
+/* 掴み/結果スイッチ */
+.mode-sw{display:flex;gap:6px;padding:8px 14px;border-bottom:1px solid #eee;align-items:center;flex-wrap:wrap;}
+.mode-sw .lbl{min-width:0;}
+.msb{font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid #ccc;background:#f0f0f0;color:#888;cursor:pointer;}
+.msb.active{background:#1a6bbf;color:#fff;border-color:#1a6bbf;}
+
+/* 最終確定バッジ */
+.final-badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#ffeeba;color:#856404;border:1px solid #ffc107;margin-left:6px;}
+.final-badge.done{background:#d4edda;color:#155724;border-color:#28a745;}
+
+/* 履歴 */
+.hist-link{font-size:12px;color:#1a6bbf;cursor:pointer;padding:7px 14px;border-top:1px solid #eee;display:block;}
+.hist-area{padding:10px 14px;display:none;}
+.hist-area.open{display:block;}
+.htbl{width:100%;font-size:12px;border-collapse:collapse;}
+.htbl th{text-align:left;color:#888;font-weight:400;padding:4px 5px;border-bottom:1px solid #eee;}
+.htbl td{padding:4px 5px;border-bottom:1px solid #eee;}
+
+/* 名簿 */
+.mbr-item{padding:9px 14px;border-bottom:1px solid #eee;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.mbr-nm{font-size:14px;font-weight:500;min-width:90px;}
+.mbr-kana{font-size:11px;color:#888;}
+.mbr-meta{font-size:11px;color:#aaa;}
+.tag{font-size:11px;padding:1px 7px;border-radius:10px;background:#dbeeff;color:#1a6bbf;}
+
+/* 班長モード */
+#hancho-page{display:none;padding-bottom:40px;}
+#hancho-page.active{display:block;}
+.hancho-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.hancho-tbl th{background:#fafafa;color:#888;font-weight:500;font-size:11px;padding:6px 8px;border-bottom:1px solid #ddd;text-align:center;}
+.hancho-tbl th.name-col{text-align:left;min-width:70px;}
+.hancho-tbl td{padding:5px 6px;border-bottom:1px solid #eee;text-align:center;vertical-align:middle;}
+.hancho-tbl td.name-cell{text-align:left;font-size:13px;padding-left:10px;}
