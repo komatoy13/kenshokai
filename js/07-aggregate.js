@@ -55,6 +55,8 @@ function getItemMode(itemId){
   const item=items.find(x=>x.id===itemId);
   if(!item) return 'grab';
   if(item.type==='confirm') return 'confirm';
+  // 日曜勤行は基本ABC（掴み）をつけないので、最初から「結果」を入れる状態にする（手で「掴み」に切り替えることは可能）
+  if(item.id==='sunday') return 'result';
   return 'grab';
 }
 
@@ -332,13 +334,30 @@ function saveResult(){
     }
   });
   const i=aggHistory.findIndex(e=>e.date===date);
+  // 同じ日付・同じ項目の記録がすでにある場合は、上書きする前に確認する
   if(i>=0){
-    // 同じ日付が既にある場合は上書きせず追記マージ（項目単位・氏名単位）
+    const exs=aggHistory[i].summary||{};
+    const dup=targetIds.filter(id=>exs[id]&&summary[id]);
+    if(dup.length){
+      const lines=dup.map(id=>'・'+(exs[id].label||id)+'：'+fmtSummaryBrief(exs[id])+' → '+fmtSummaryBrief(summary[id]));
+      const notToday=date!==todayLocal()?'\n\n※今日（'+ymdJa(todayLocal())+'）ではない日付です。日付は合っていますか？':'';
+      const ok=confirm(ymdJa(date)+' には、すでに次の記録があります。上書きしますか？\n\n'+lines.join('\n')+'\n（左＝今ある記録 → 右＝今回の内容）'+notToday);
+      if(!ok){flash('agg-msg','上書きしませんでした（記録は変わっていません）');return;}
+    }
+  }
+  if(i>=0){
+    // 同じ日付が既にある場合は、別の項目の記録は残して追記マージ（項目単位・氏名単位）
     const ex=aggHistory[i];
     ex.summary=Object.assign({},ex.summary,summary);
     ex.members=ex.members||{};
+    // 上書きする項目は、前の個人別記録も入れ替える（名簿から外れた人の古い記録が残らないように）
+    Object.keys(ex.members).forEach(k=>{ targetIds.forEach(id=>{ delete ex.members[k][id]; }); });
     Object.keys(membersSnap).forEach(k=>{
       ex.members[k]=Object.assign({},ex.members[k],membersSnap[k]);
+    });
+    Object.keys(ex.members).forEach(k=>{
+      const left=Object.keys(ex.members[k]).filter(x=>x!=='han'&&x!=='name');
+      if(!left.length) delete ex.members[k];
     });
   } else {
     aggHistory.push({date,summary,members:membersSnap});
@@ -346,8 +365,33 @@ function saveResult(){
   aggHistory.sort((a,b)=>a.date>b.date?-1:1);
   try{localStorage.setItem('agg_hist',JSON.stringify(aggHistory));}catch(e){}
   gasSave('aggHistory', aggHistory);
-  flash('agg-msg','保存しました');
+  flash('agg-msg',ymdJa(date)+'の記録を保存しました');
   renderAggHist_ifOpen();
+  // 次の入力に備えて、報告日を今日に戻す（過去の日付が残って上書き事故になるのを防ぐ）
+  _reportDateTouched['agg-date']=false;
+  refreshReportDates();
+}
+
+// ABC（掴み）の一括クリア
+// 対象＝いま選択している項目 × 表示中の班（「全班まとめ」なら全員）。結果（○×・数値）は消さない
+function clearAllGrab(){
+  const ids=activeItemIds.filter(id=>{const it=items.find(x=>x.id===id);return it&&it.type!=='confirm';});
+  if(!ids.length){flash('agg-msg','ABCをクリアする項目がありません（項目を選んでください）');return;}
+  const hanVal=document.getElementById('agg-han').value;
+  const aggHan=getAggHan();
+  const targetHans=hanVal==='__all__'?aggHan:aggHan.filter(h=>h.name===hanVal);
+  const keys=[];
+  targetHans.forEach(h=>h.members.forEach(m=>keys.push(memberKey(h.name,m))));
+  let n=0;
+  keys.forEach(k=>ids.forEach(id=>{ if(aggData[k]&&aggData[k][id]&&aggData[k][id].grab) n++; }));
+  if(!n){flash('agg-msg','クリアするABCはありません');return;}
+  const labels=ids.map(id=>items.find(x=>x.id===id).label).join('・');
+  const scope=hanVal==='__all__'?'全班':hanVal+'班';
+  if(!confirm('ABC評価を一括クリアします。\n\n対象項目：'+labels+'\n対象：'+scope+'（ABCが付いている '+n+' 件）\n\n○×・数値などの「結果」は消えません。よろしいですか？')) return;
+  keys.forEach(k=>ids.forEach(id=>{ if(aggData[k]&&aggData[k][id]) aggData[k][id].grab=''; }));
+  saveAggData();
+  renderAggTable(); renderAggSummary();
+  flash('agg-msg','ABCを '+n+' 件クリアしました');
 }
 
 // リセット

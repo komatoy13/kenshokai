@@ -147,7 +147,7 @@ function renderFukubokuList(){
     el.innerHTML='<div style="font-size:13px;color:#888;padding:10px 14px">予定はありません</div>';
     return;
   }
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayLocal();
   el.innerHTML = fukubokuPlans.map(p=>{
     const past = p.date < today;
     const dateDisp = p.date.replace(/^(\d{4})-(\d{2})-(\d{2})$/,'$2月$3日');

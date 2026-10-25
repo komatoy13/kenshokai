@@ -105,12 +105,12 @@ function generateMail(){
 
   // 最後：段取り（今日〜翌週月曜日）
   const now = new Date();
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = ymdLocal(now);
   const nextMon = new Date(now);
   const dow = now.getDay();
   const daysUntilMon = dow === 1 ? 7 : (8 - dow) % 7;
   nextMon.setDate(now.getDate() + daysUntilMon);
-  const nextMonStr = nextMon.toISOString().slice(0,10);
+  const nextMonStr = ymdLocal(nextMon);
   const plans = fukubokuPlans.filter(p => p.date >= todayStr && p.date <= nextMonStr);
   lines.push(num++ + '.段取り　' + plans.length + '件');
   plans.forEach(p => {

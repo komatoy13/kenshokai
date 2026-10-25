@@ -1,7 +1,12 @@
 /* ===== 定数 ===== */
 const ABCC=['','A','B','C','D','E'];
 const AWt={'':0,A:1,B:.5,C:.2,D:0,E:0};
-const td=new Date().toISOString().slice(0,10);
+// 今日の日付（端末の日本時間ベース。toISOString はUTC基準で、日本の午前0〜9時は前日になってしまうため使わない）
+function ymdLocal(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function todayLocal(){ return ymdLocal(new Date()); }
+const td=todayLocal();
 
 // 班リスト（localStorage＋GAS保存。初期値は空）
 let hanList=[]; // [{name:'道家豊光'}, ...]

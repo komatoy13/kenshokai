@@ -183,7 +183,7 @@ function exportAnalysisMemberCSV(){
     });
   });
   if(rows.length<=1){ if(msg)msg.textContent='該当する個人記録がありません'; return; }
-  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const today=todayLocal().replace(/-/g,'');
   downloadCSV('分析用_個人別_'+today+'.csv',rows);
   if(msg){msg.textContent='ダウンロードしました';setTimeout(()=>{msg.textContent='';},2500);}
 }
@@ -206,7 +206,7 @@ function exportNyushinCSV(){
   if(!list.length){ if(msg)msg.textContent='該当する入信者がいません'; return; }
   const rows=[['入信日','班','氏名','紹介者']];
   list.forEach(m=>{rows.push([normalizeDate(m.nyushin),m.han||'',(m.sei||'')+(m.mei||''),m.shokai||'']);});
-  const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const today=todayLocal().replace(/-/g,'');
   downloadCSV('分析用_入信者_'+today+'.csv',rows);
   if(msg){msg.textContent='ダウンロードしました';setTimeout(()=>{msg.textContent='';},2500);}
 }

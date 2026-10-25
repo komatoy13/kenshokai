@@ -48,12 +48,22 @@ function renderHList(){
 function saveHP(){hPeriod={start:document.getElementById('h-start').value,end:document.getElementById('h-end').value};try{localStorage.setItem('h_period',JSON.stringify(hPeriod));}catch(e){}gasSave('hPeriod',hPeriod);flash('h-pmsg','設定しました');renderHCards();renderHList();}
 function saveHR(){
   const date=document.getElementById('h-rdate').value;
+  if(!date){flash('h-rmsg','報告日を選んでください');return;}
   const e={date,total:getHTotal(),byHan:getHByHan()};
-  const i=hHist.findIndex(x=>x.date===date);if(i>=0)hHist[i]=e;else hHist.push(e);
+  const i=hHist.findIndex(x=>x.date===date);
+  // 同じ報告日の記録がすでにある場合は、上書きする前に確認する
+  if(i>=0){
+    const notToday=date!==todayLocal()?'\n\n※今日（'+ymdJa(todayLocal())+'）ではない日付です。日付は合っていますか？':'';
+    const ok=confirm(ymdJa(date)+' には、折伏成果の記録がすでにあります。上書きしますか？\n\n・合計：'+hHist[i].total+'名 → '+e.total+'名\n（左＝今ある記録 → 右＝今回の内容）'+notToday);
+    if(!ok){flash('h-rmsg','上書きしませんでした（記録は変わっていません）');return;}
+    hHist[i]=e;
+  } else hHist.push(e);
   hHist.sort((a,b)=>a.date>b.date?-1:1);
-  try{localStorage.setItem('h_hist',JSON.stringify(hHist));}catch(e){}
+  try{localStorage.setItem('h_hist',JSON.stringify(hHist));}catch(err){}
   gasSave('hHist',hHist);
-  flash('h-rmsg','保存しました');if(hHO)renderHHist();
+  flash('h-rmsg',ymdJa(date)+'の記録を保存しました');if(hHO)renderHHist();
+  _reportDateTouched['h-rdate']=false;
+  refreshReportDates();
 }
 function toggleHH(){hHO=!hHO;document.getElementById('h-hist').classList.toggle('open',hHO);document.getElementById('h-hl').textContent=(hHO?'▾':'▸')+' 過去の法戦記録';if(hHO)renderHHist();}
 function renderHHist(){const el=document.getElementById('h-hist');if(!hHist.length){el.innerHTML='<div style="font-size:13px;color:#888">まだ記録がありません</div>';return;}let h=`<table class="htbl"><thead><tr><th>報告日</th><th>合計</th></tr></thead><tbody>`;hHist.forEach(e=>{h+=`<tr><td>${e.date}</td><td>${e.total}名</td></tr>`;});el.innerHTML=h+'</tbody></table>';}

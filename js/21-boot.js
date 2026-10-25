@@ -1,4 +1,26 @@
-/* ===== 起動 ===== */
+/* ===== 報告日（集計・折伏成果）を「今日」に自動で合わせる =====
+   ・起動時／別の日にアプリへ戻ったとき：必ず今日にする
+   ・同じ日のうちに手で日付を変えた場合は、その選択を尊重する（タブを行き来しても戻さない）
+   ・保存に成功したら、次の入力に備えて今日に戻す */
+const REPORT_DATE_IDS=['agg-date','h-rdate'];
+let _reportDateTouched={};
+let _lastActiveDay=todayLocal();
+function refreshReportDates(force){
+  const today=todayLocal();
+  if(today!==_lastActiveDay){ force=true; _lastActiveDay=today; }   // 日をまたいだ
+  REPORT_DATE_IDS.forEach(function(id){
+    const el=document.getElementById(id);
+    if(!el) return;
+    if(force || !_reportDateTouched[id]){ el.value=today; _reportDateTouched[id]=false; }
+  });
+}
+REPORT_DATE_IDS.forEach(function(id){
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('change', function(){ _reportDateTouched[id]=true; });
+});
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) refreshReportDates(); });
+window.addEventListener('focus', function(){ refreshReportDates(); });
+
 function init(){
   const load=(key,def)=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}};
   aggHistory=load('agg_hist',[]);
@@ -20,9 +42,8 @@ function init(){
     initAggData();
   }
 
-  document.getElementById('agg-date').value=td;
-  document.getElementById('h-rdate') && (document.getElementById('h-rdate').value=td);
-  document.getElementById('r-nyushin') && (document.getElementById('r-nyushin').value=td);
+  refreshReportDates(true);
+  document.getElementById('r-nyushin') && (document.getElementById('r-nyushin').value=todayLocal());
 
   // カスタム項目を復元
   const customItems=load('custom_items',[]);
