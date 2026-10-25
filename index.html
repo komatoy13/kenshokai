@@ -8,16 +8,29 @@
 </head>
 <body>
 
-<div class="tabs">
-  <div class="tab active" id="tb0" onclick="sw(0)">集計</div>
-  <div class="tab" id="tb1" onclick="sw(1)">折伏成果</div>
-  <div class="tab" id="tb2" onclick="sw(2)">入信者登録</div>
-  <div class="tab" id="tb3" onclick="sw(3)">名簿</div>
-  <div class="tab" id="tb4" onclick="sw(4)">折伏予定</div>
-  <div class="tab" id="tb5" onclick="sw(5)">メール</div>
-  <div class="tab" id="tb6" onclick="sw(6)">設定</div>
-  <div class="tab" id="tb7" onclick="sw(7)">分析</div>
-</div>
+<!-- ========== メニュー（右下フローティング ≡） ========== -->
+<button type="button" id="menu-fab" onclick="toggleMenu()" aria-label="メニューを開く" aria-expanded="false" aria-controls="menu-panel"><span class="mf-ic">≡</span><span id="menu-cur">集計</span></button>
+<div id="menu-overlay" onclick="closeMenu()"></div>
+<nav id="menu-panel" aria-label="メニュー">
+  <div class="mg" id="mg-daily">
+    <div class="mg-t">日常入力</div>
+    <button type="button" class="mi active" id="tb0" onclick="sw(0)">集計</button>
+    <button type="button" class="mi" id="tb1" onclick="sw(1)">折伏成果</button>
+    <button type="button" class="mi" id="tb2" onclick="sw(2)">入信者登録</button>
+  </div>
+  <div class="mg" id="mg-view">
+    <div class="mg-t">見る・調べる</div>
+    <button type="button" class="mi" id="tb8" onclick="sw(8)">グラフ</button>
+    <button type="button" class="mi" id="tb3" onclick="sw(3)">名簿</button>
+    <button type="button" class="mi" id="tb4" onclick="sw(4)">折伏予定</button>
+  </div>
+  <div class="mg" id="mg-admin">
+    <div class="mg-t">支隊長用</div>
+    <button type="button" class="mi" id="tb5" onclick="sw(5)">メール</button>
+    <button type="button" class="mi" id="tb7" data-short="分析" onclick="sw(7)">分析（コピー・CSV）</button>
+    <button type="button" class="mi" id="tb6" onclick="sw(6)">設定</button>
+  </div>
+</nav>
 
 <!-- デバッグパネル（問題解決後に削除） -->
 <div id="debug-panel" style="background:#000;color:#0f0;font-size:10px;padding:6px;font-family:monospace;max-height:120px;overflow-y:auto;display:none;">
@@ -27,7 +40,7 @@
   </div>
   <div id="debug-log"></div>
 </div>
-<button onclick="document.getElementById('debug-panel').style.display='block'" style="position:fixed;bottom:10px;right:10px;z-index:999;font-size:10px;padding:3px 8px;background:#333;color:#fff;border:none;border-radius:4px;opacity:0.7;">ログ</button>
+<button onclick="document.getElementById('debug-panel').style.display='block'" style="position:fixed;bottom:10px;left:10px;z-index:999;font-size:10px;padding:3px 8px;background:#333;color:#fff;border:none;border-radius:4px;opacity:0.7;">ログ</button>
 
 <!-- ========== 班長専用入力画面 ========== -->
 <div id="hancho-page">
@@ -95,6 +108,7 @@
     <input type="date" id="agg-date">
     <button class="btn btn-p" onclick="saveResult()">結果を保存</button>
     <button class="btn btn-w" onclick="resetResult()">リセット</button>
+    <button class="btn" onclick="clearAllGrab()" title="選択中の項目・表示中の班のABC評価をまとめて消します（結果は消えません）">ABCを一括クリア</button>
     <span class="ok" id="agg-msg"></span>
   </div>
 
@@ -500,6 +514,25 @@
   <div style="font-size:11px;color:#aaa;padding:0 14px 12px;">※ CSVはExcelでも文字化けしないようBOM付きで出力されます。</div>
 </div>
 
+<!-- ========== グラフ ========== -->
+<div class="page" id="pg8">
+  <div class="sec-hd">📈 グラフ</div>
+  <div class="gr-filter">
+    <label>項目 <select id="gr-item" onchange="renderGraphs()"></select></label>
+    <label>期間
+      <select id="gr-period" onchange="renderGraphs()">
+        <option value="8" selected>直近8回</option>
+        <option value="12">直近12回</option>
+        <option value="26">直近26回</option>
+        <option value="0">全期間</option>
+      </select>
+    </label>
+    <label id="gr-han-wrap">班 <select id="gr-han" onchange="renderGraphs()"></select></label>
+  </div>
+  <div class="gr-note" id="gr-note"></div>
+  <div id="gr-body"></div>
+</div>
+
 <!-- ========== スクリプト（依存順に読み込み） ========== -->
 <script src="js/01-constants.js"></script>
 <script src="js/02-agg-items.js"></script>
@@ -523,5 +556,8 @@
 <script src="js/20-hancho-import.js"></script>
 <script src="js/21-boot.js"></script>
 <script src="js/22-analysis.js"></script>
+<script src="js/23-menu.js"></script>
+<script src="js/24-chart-kit.js"></script>
+<script src="js/25-graphs.js"></script>
 </body>
 </html>
