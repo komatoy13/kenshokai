@@ -167,6 +167,18 @@
 
 <!-- ========== 入信者登録 ========== -->
 <div class="page" id="pg2">
+  <div class="imp-box" id="imp-box">
+    <div class="imp-title">📋 文面から自動入力</div>
+    <div class="imp-help">メールなどで届いた文面を貼り付けると、下のフォームに自動で取り込みます。確認・追加してから登録してください（複数人まとめても可）。</div>
+    <textarea id="imp-text" placeholder="例）7人目 11/3入信 サンタン サビナ 07.12.12 兵庫県神戸市中央区東雲通2丁目2-1 東雲レジデンス3-D 加藤正典"></textarea>
+    <div class="imp-btns2">
+      <button class="btn btn-p" style="font-size:12px" onclick="piRun()">取り込む</button>
+      <button class="btn btn-w" style="font-size:12px" onclick="piCancel()">消去</button>
+      <span id="imp-msg" style="font-size:12px;color:#888"></span>
+    </div>
+    <div id="imp-result"></div>
+  </div>
+
   <div class="sec-hd">氏名</div>
   <div class="row">
     <div class="lbl">姓 <span style="color:#c0392b;font-size:10px">必須</span></div>
@@ -559,5 +571,6 @@
 <script src="js/23-menu.js"></script>
 <script src="js/24-chart-kit.js"></script>
 <script src="js/25-graphs.js"></script>
+<script src="js/26-paste-import.js"></script>
 </body>
 </html>
