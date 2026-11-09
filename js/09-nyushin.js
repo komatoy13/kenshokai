@@ -39,16 +39,23 @@ function onZipInput(el){
     _zipTimer=setTimeout(()=>fetchZip(raw),300);
   }
 }
+// 郵便番号の検索結果を住所欄に反映する
+// 文面から取り込んだ住所があるときは、その住所を優先（空の欄だけ補う）。
+// ※そのまま上書きすると、市区町村欄に町名まで入り、「それ以下」と重複してしまうため
+function applyZipResult(r){
+  const lock=(typeof piAddrLocked==='function')&&piAddrLocked();
+  const prefEl=document.getElementById('r-pref'),cityEl=document.getElementById('r-city');
+  if(!lock||!prefEl.value) prefEl.value=r.address1||'';
+  if(!lock||!cityEl.value) cityEl.value=(r.address2||'')+(r.address3||'');
+  document.getElementById('r-zip-msg').textContent=lock?'✓（住所は取り込み内容を優先）':'✓';
+  setTimeout(()=>document.getElementById('r-zip-msg').textContent='',2000);
+}
 function fetchZip(zip){
   fetch('https://zipcloud.ibsrio.com/api/search?zipcode='+zip)
     .then(r=>r.json())
     .then(d=>{
       if(d.results&&d.results[0]){
-        const r=d.results[0];
-        document.getElementById('r-pref').value=r.address1||'';
-        document.getElementById('r-city').value=(r.address2||'')+(r.address3||'');
-        document.getElementById('r-zip-msg').textContent='✓';
-        setTimeout(()=>document.getElementById('r-zip-msg').textContent='',2000);
+        applyZipResult(d.results[0]);
       } else {
         document.getElementById('r-zip-msg').textContent='見つかりません';
       }
@@ -59,11 +66,7 @@ function fetchZip(zip){
         .then(r=>r.json())
         .then(d=>{
           if(d.results&&d.results[0]){
-            const r=d.results[0];
-            document.getElementById('r-pref').value=r.address1||'';
-            document.getElementById('r-city').value=(r.address2||'')+(r.address3||'');
-            document.getElementById('r-zip-msg').textContent='✓';
-            setTimeout(()=>document.getElementById('r-zip-msg').textContent='',2000);
+            applyZipResult(d.results[0]);
           } else {
             document.getElementById('r-zip-msg').textContent='エラー';
           }
@@ -211,32 +214,41 @@ function toggleMinyushin(){
   if(isMini) sv('r-nyushin','');
 }
 
-function registerMbr(){
-  const sei=gv('r-sei');
-  if(!sei){showMsg('r-msg','姓を入力してください','err');return;}
-  const mei=gv('r-mei');
+// 入信者登録フォームの内容を名簿1件ぶんの形で読み取る（新規登録・既存更新の両方で使う）
+function readRegForm(){
   const minyushin=document.getElementById('r-minyushin').checked;
-  const birth=getBirthValue();
-  const m={
-    id:Date.now(),sei,mei,
+  return {
+    sei:gv('r-sei'),mei:gv('r-mei'),
     seiK:gv('r-sk'),meiK:gv('r-mk'),
     pref:gv('r-pref'),city:gv('r-city'),addr:gv('r-addr'),
     tel:gv('r-tel').replace(/[-ー－]/g,''),
     tel2:gv('r-tel2').replace(/[-ー－]/g,''),
-    birth,
+    birth:getBirthValue(),
     kumi:document.getElementById('r-kumi').value,
     han:document.getElementById('r-han').value,
     shokai:gv('r-shokai'),
     nyushin:minyushin?'':normalizeDate(gv('r-nyushin')),
-    biko:'',
     comment:document.getElementById('r-comment').value.trim(),
-    commentUpdated:document.getElementById('r-comment').value.trim() ? td : '',
     minyushin
   };
+}
+
+function registerMbr(){
+  const sei=gv('r-sei');
+  if(!sei){showMsg('r-msg','姓を入力してください','err');return;}
+  // 文面取り込み中の確認（同名チェック／既存更新モード）。false なら登録を中止
+  if(typeof pasteImportBeforeRegister==='function' && pasteImportBeforeRegister()===false) return;
+  const mei=gv('r-mei');
+  const f=readRegForm();
+  const m=Object.assign({id:Date.now()},f,{
+    biko:'',
+    commentUpdated:f.comment ? td : ''
+  });
   roster.push(m);saveRoster();
   buildHanSelects();rebuildFpHan();
   if(m.aggTarget) initAggData();
   showMsg('r-msg',(sei+(mei||''))+' を登録しました','ok');clearReg();renderHCards();renderHList();
+  if(typeof pasteImportAfterRegister==='function') pasteImportAfterRegister(m);
 }
 
 function clearReg(){
@@ -251,6 +263,7 @@ function clearReg(){
   document.getElementById('r-kumi-note').textContent='';
   document.getElementById('r-minyushin').checked=false;
   document.getElementById('r-nyushin-row').style.display='';
+  if(typeof pasteImportOnClear==='function') pasteImportOnClear();
 }
 function saveRoster(){
   try{localStorage.setItem('roster',JSON.stringify(roster));}catch(e){}

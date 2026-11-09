@@ -7,6 +7,8 @@ function savePendingMembers(){
 function pendingRegMbr(){
   const sei = (document.getElementById('r-sei').value||'').trim();
   if(!sei){ showMsg('r-msg','姓は必須です','err'); return; }
+  // 文面取り込み中の同名チェック。false なら申請を中止
+  if(typeof pasteImportBeforeRegister==='function' && pasteImportBeforeRegister()===false) return;
   const minyushin = document.getElementById('r-minyushin').checked;
   const pending = {
     id: 'pending_' + Date.now(),
@@ -15,7 +17,7 @@ function pendingRegMbr(){
     pref: gv('r-pref'), city: gv('r-city'), addr: gv('r-addr'),
     tel: gv('r-tel').replace(/[-ー－]/g,''),
     tel2: gv('r-tel2').replace(/[-ー－]/g,''),
-    birth: gv('r-birth') || '',
+    birth: getBirthValue() || '',   // 以前は存在しない欄 r-birth を読んでおり、生年月日が保存されていなかった
     kumi: document.getElementById('r-kumi').value,
     han: document.getElementById('r-han').value,
     shokai: gv('r-shokai'),
@@ -29,6 +31,7 @@ function pendingRegMbr(){
   savePendingMembers();
   showMsg('r-msg', '仮登録しました。支隊長の承認をお待ちください。', 'ok');
   clearReg();
+  if(typeof pasteImportAfterRegister==='function') pasteImportAfterRegister(pending);
 }
 
 function renderPendingList(){
